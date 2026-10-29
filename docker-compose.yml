@@ -194,8 +194,8 @@ services:
         condition: service_healthy
     command: >
       /bin/sh -c "
-      PGPASSWORD=$$POSTGRES_PASSWORD psql -h postgres -U $$POSTGRES_USER
-      -c 'CREATE DATABASE keycloak OWNER $$POSTGRES_USER' 2>/dev/null || true
+      PGPASSWORD=$$POSTGRES_PASSWORD psql -h postgres -U $$POSTGRES_USER -d postgres
+      -c 'CREATE DATABASE keycloak' || true
       "
     networks:
       medwear-network: {}

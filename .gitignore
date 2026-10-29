@@ -227,3 +227,6 @@ venv/
 .env
 .env.medwear
 .credentials.txt
+
+# setup.sh output
+.setup-compose.log
