@@ -1,0 +1,20 @@
+# Corsano 287-2B wristband (ACC, BioZ, HR, stress), driver corsano_ros from
+# ros4healthcare. Used with decoder.py (file-transfer protocol).
+name: Corsano
+address_type: "random"
+# --test-republish-latest (profiling only): the driver normally publishes
+# BioZ/ACC only when the watch recorded something new; for link tests it
+# republishes the latest record on every poll, so the topics carry a steady
+# load whether or not the watch is worn. Those messages can be stale: the
+# baseline check uses the watch's own file changes (decoder.baseline_check).
+# --plan HOSPITAL_RAW: the driver's default HOSPITAL_MULTICOLOR never records
+# raw ACC.
+launch_cmd: "ros2 run corsano_ros corsano_ros --mac-address-or-name {mac_address} --publish-bioz --publish-accel --publish-hr --publish-stress --plan HOSPITAL_RAW --test-republish-latest"
+driver_source_dir: "${ROS_WS}/src/ros4healthcare/ros2_hc_drv/corsano_ros"
+# the driver publishes its battery by default
+battery_topic: "corsano/battery"
+# With --test-republish-latest these always have messages; what catches "not
+# measuring" is the watch's file changes. corsano/hr and /rr come from
+# Activity records written only every few minutes, so a short run can
+# legitimately have none.
+expected_topics: ["corsano/acceleration", "corsano/bioz"]

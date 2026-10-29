@@ -1,0 +1,124 @@
+# =============================================================================
+# Sensor profiling: one field session = one visit to a site (e.g. a clinic's
+# gym), sensor runs under the site's own WiFi. Edit the sensors, the session
+# design and the monitor's radios here; profile_session.py,
+# background_monitor.py and analyze_session.py read this file.
+# =============================================================================
+
+session:
+  output_dir: "captures"          # session folders, relative to sensor_profiling/
+  results_csv: "results.csv"      # parsed summary, one row per run
+
+# BLE controller under test: btmon captures it, the drivers connect through it
+btmon_controller: "hci0"
+
+# The nRF sniffer belongs to background_monitor.py in a field session
+# (advertiser counts); per-run sniffer captures are off.
+ble_sniffer:
+  enabled: false
+
+# rosbag of all topics, one bag per run, next to the BLE/HCI captures.
+# Skipped with a warning if `ros2` isn't on PATH.
+rosbag:
+  enabled: true
+
+# Soft-blocks the internal WiFi radio (the combo card that shares an antenna
+# with the Bluetooth controller) during the session; restored at the end.
+# Targets only that radio's rfkill id, so USB adapters are untouched.
+# Skipped under --test-mode.
+disable_internal_wifi:
+  enabled: true
+
+# -----------------------------------------------------------------------------
+# Sensors: one entry per unit. `profile` is a folder in sensors/ (sensor.yaml,
+# optional decoder.py); see sensors/_template/ to add a new model. `name`
+# labels the unit in file names and results; `mac_address` is the unit's
+# Bluetooth address (bluetoothctl scan on, or the sensor's app).
+# -----------------------------------------------------------------------------
+sensors:
+  - profile: polar_h10
+    name: Polar_H10
+    mac_address: "AA:BB:CC:DD:EE:01"   # replace with your unit's address
+  - profile: corsano_287_2b
+    name: Corsano
+    mac_address: "AA:BB:CC:DD:EE:02"   # replace with your unit's address
+
+# -----------------------------------------------------------------------------
+# Session design (profile_session.py)
+# -----------------------------------------------------------------------------
+profile_session:
+  duration_s: 300
+  # Randomised blocks: each block = every condition once per sensor, in a
+  # seeded shuffled order. 4 conditions x 3 blocks x 2 sensors = 24 runs.
+  blocks: 3
+  # Sensors to run (names from `sensors:`); default: all of them.
+  # device_names: ["Polar_H10", "Corsano"]
+  # free_channel is always included; these are the forced conditions: the
+  # BLE data channels inside the forced WiFi channel plus k extra channels.
+  k_values: [0, 2, 8]
+  # Alternate the sensor order block by block so the sensor isn't
+  # confounded with time of day (sensors never stream at the same time).
+  interleave_devices: true
+  # Extra channels for k > 0: the site's quietest channels in the survey.
+  extra_channels: survey
+  # Refuse to start if the monitor's last airtime row is older than this.
+  monitor_max_age_s: 90
+  # Ask for a people count at the start, at each block boundary and at the
+  # end, and wait for a number. false = never ask; log counts by hand with
+  # `profile_session.py people N` at any time.
+  people_count_prompts: false
+  # Before each run: the sensor's advertising RSSI (rssi_scan_s scan, our
+  # sensor only) vs its reference. Out of tolerance or not advertising ->
+  # a warning in pre_run_checks.csv, and the run starts anyway.
+  # Reference: rssi_reference_dbm per sensor if set, else the session's
+  # first reading.
+  pre_run_rssi_check: true
+  rssi_scan_s: 6
+  rssi_tolerance_db: 8
+  rssi_reference_dbm:
+    Polar_H10: null
+    Corsano: null
+
+# -----------------------------------------------------------------------------
+# Background monitor (background_monitor.py), on its own radios
+# -----------------------------------------------------------------------------
+background_monitor:
+  # USB WiFi adapter switched to monitor mode for the whole monitor run and
+  # back to managed on exit (tested: TP-Link Archer T3U Plus, rtw88_8822bu).
+  # Never the internal radio (shares an antenna with the BLE controller;
+  # refused in code). Find the name with `iw dev`.
+  wifi_iface: wlan1
+  # nRF52840 sniffer, used unfollowed for advertiser COUNTS only.
+  ble_sniffer_port: "/dev/ttyACM0"
+  # Airtime on the forced channel: one row per window.
+  airtime_report_s: 15
+  # Network-count sweep: hop these channels, sweep_dwell_s each, every
+  # sweep_interval_s. Forced-channel airtime has a gap of about
+  # (n_channels x (dwell + 0.2) + 2) s per sweep: ~30 s for 2.4 GHz only,
+  # ~75 s with the 5 GHz list below (empty it to keep the gap short).
+  sweep_interval_s: 900
+  sweep_dwell_s: 2.0
+  sweep_channels_24: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]
+  # 5 GHz only counts networks (not in the BLE band). Channels the
+  # regulatory domain disables are skipped.
+  sweep_channels_5: [36, 40, 44, 48, 52, 56, 60, 64, 100, 104, 108, 112, 116, 120, 124, 128, 132, 136, 140]
+  # Survey before the session: picks the busiest channel by airtime.
+  survey_dwell_s: 15
+  survey_passes: 2
+  # Bluetooth crowding: distinct CRC-ok advertisers per window, counted in
+  # memory (addresses never written). "nearby" = strongest packet at or
+  # above this RSSI. An address needs ble_min_packets packets in a window
+  # to count (filters one-off corrupted addresses).
+  ble_window_s: 60
+  ble_nearby_rssi_dbm: -80
+  ble_min_packets: 2
+  # Receiver-fault detection (the rtw88 driver can decode garbage, and
+  # airtime then reads near 100 %). A window is blanked (airtime.csv fault
+  # column) and the adapter reset if the kernel log has >= driver_errors_min
+  # WiFi-driver receive errors in it, or if beaconing networks drop below
+  # collapse_networks_frac x the recent healthy median while airtime is
+  # >= collapse_airtime_pct. Reset: interface bounce; on the 3rd faulty
+  # window in a row, reload the rtw88_8822bu module.
+  driver_errors_min: 3
+  collapse_networks_frac: 0.3
+  collapse_airtime_pct: 50

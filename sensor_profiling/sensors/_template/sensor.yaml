@@ -1,0 +1,36 @@
+# Profile of one sensor model. Copy this folder to sensors/<your_model>/,
+# fill in the fields, and list your units in config.yaml under `sensors:`
+# (profile: <your_model>, name, mac_address).
+#
+# Without decoder.py every run still gets the link metrics: connection
+# parameters, link losses and reconnects, connected share, notification
+# rate and payload delivery, AFH channel maps, RX jitter. decoder.py adds
+# what only the sensor's own protocol can tell (see decoder.py here).
+
+# Label of the model (units get their own `name` in config.yaml)
+name: MySensor
+
+# "public" or "random": the address type the sensor advertises with
+# (nRF sniffer's --follow; bluetoothctl info <address> shows it)
+address_type: "random"
+
+# Command that starts the sensor's ROS 2 driver; {mac_address} is replaced
+# by the unit's address. The driver must connect to the sensor and stream
+# for as long as it runs; profile_session.py stops it with SIGINT.
+launch_cmd: "ros2 run my_sensor_driver connector --address {mac_address}"
+
+# Optional: the driver's source tree; its git commit is recorded as
+# driver_version in results.csv (${VAR} and ~ are expanded).
+driver_source_dir: "${ROS_WS}/src/my_sensor_driver"
+
+# Optional: sensor_msgs/BatteryState topic, read from each run's rosbag
+battery_topic: "my_sensor/battery"
+
+# Topics that must carry >= 1 message in every baseline run, or the run
+# fails as "baseline sensor data not published" (catches a sensor that is
+# connected but not measuring)
+expected_topics: ["my_sensor/ecg"]
+
+# Checked the same way but only logged as a warning (e.g. a heart-rate
+# topic published only with skin contact)
+advisory_topics: []

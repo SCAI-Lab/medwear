@@ -230,3 +230,7 @@ venv/
 
 # setup.sh output
 .setup-compose.log
+
+# sensor profiling: session data and analyses stay local
+sensor_profiling/captures/
+sensor_profiling/analysis/

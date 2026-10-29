@@ -144,6 +144,18 @@ with the device metadata of their `…Info` messages. Multi-channel messages
 become one stream per channel; high-rate topics are batched. See its
 [README](ros2_to_medwear/README.md).
 
+## Profiling sensors before a study
+
+[`sensor_profiling/`](sensor_profiling/) measures how a BLE wearable holds up
+under a real site's WiFi (e.g. a clinic's gym) before it is used with
+MEDWEAR: link losses and recovery, delivery, channel use, and for sensors
+that send their own sample timestamps, completeness, added delay and the
+share of samples that miss a deadline. Sensors are described by profiles
+(`sensors/<model>/sensor.yaml`, plus an optional decoder for the sensor's
+own protocol); the Polar H10 and Corsano 287-2B are worked examples, and
+`sensors/_template/` is the starting point for a new one. See its
+[README](sensor_profiling/README.md).
+
 ## Tests
 
 ```bash
@@ -167,6 +179,7 @@ docker/                  API Dockerfile, nginx, Keycloak realm template, Grafana
 medwear_med_api/         API (FastAPI), migrations, tests, data-parsing helpers
 frontend/                web interface
 ros2_to_medwear/         ROS 2 bridge
+sensor_profiling/        BLE sensor tests under a site's WiFi (sensor profiles in sensors/)
 scripts/                 add_user.sh, backup.sh, export_realm.sh
 deployments/             adding installation-specific configuration
 docs/API.md              API reference

@@ -1,0 +1,21 @@
+# Polar H10 chest strap (ECG 130 Hz, ACC 200 Hz, HR/RR), driver polar_ros2
+# from ros4healthcare. Used with decoder.py (PMD/HR notifications).
+name: Polar_H10
+# for the nRF sniffer's --follow
+address_type: "public"
+# {mac_address} is replaced by the unit's address from config.yaml
+launch_cmd: "ros2 run polar_ros2 polar_connector --mac-address-or-name {mac_address} --no-publish-battery"
+# The driver's source tree: its git commit is recorded as driver_version in
+# results.csv. ROS_WS is the ROS 2 workspace the driver is built in
+# (export ROS_WS=<path>; its install/setup.bash sourced before a session).
+driver_source_dir: "${ROS_WS}/src/ros4healthcare/ros2_hc_drv/polar_ros2"
+# sensor_msgs/BatteryState topic when the driver runs with --publish-battery
+# (recorded in each run's rosbag); with --no-publish-battery, battery_pct is blank.
+battery_topic: "polar_battery"
+# Each must carry >= 1 message in every baseline run, or the run fails as
+# "baseline sensor data not published". ECG and ACC stream regardless of
+# skin contact.
+expected_topics: ["polar_acc", "polar_ecg"]
+# Checked and logged as a warning only: polar_hr is published only with
+# skin contact (HR > 0 bpm).
+advisory_topics: ["polar_hr"]

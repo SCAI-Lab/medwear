@@ -1,0 +1,8 @@
+# sensor_profiling: Python packages (ROS 2 and the sensors' drivers come from the ROS workspace)
+bleak          # advertising scans (pre-run RSSI check)
+numpy
+pandas
+scipy
+matplotlib
+pyyaml
+tabulate       # pandas.DataFrame.to_markdown in the reports
