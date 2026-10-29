@@ -1,0 +1,2312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MED-API · MEDWEAR Platform</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%23050a0f'/><text y='72' x='50' text-anchor='middle' font-size='65' font-family='Arial Black' font-weight='900' fill='%2300d4ff'>M</text></svg>">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+<style>
+  :root {
+    --bg:#050a0f;--surface:#0a1520;--surface2:#0f1e2e;--border:#1a3a5c;
+    --accent:#00d4ff;--accent2:#00ff88;--accent3:#ff6b35;
+    --text:#e8f4f8;--text-dim:#7a9ab0;--text-dimmer:#3a5a70;
+    --danger:#ff4757;--warning:#ffa502;--success:#2ed573;
+  }
+  body.light {
+    --bg:#f0f4f8;--surface:#ffffff;--surface2:#e8f0f7;--border:#c5d8eb;
+    --text:#1a2e40;--text-dim:#4a6a80;--text-dimmer:#8aabb0;
+  }
+  body.light .topbar {
+    background:rgba(240,244,248,0.9);
+  }
+  body.light .page-title {
+    color:#1a2e40;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-height:100vh;overflow-x:hidden}
+  body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(0,212,255,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,212,255,0.03) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0}
+  .sidebar{position:fixed;left:0;top:0;bottom:0;width:240px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;z-index:100}
+  .logo{padding:28px 24px;border-bottom:1px solid var(--border)}
+  .logo-title{font-family:'Syne',sans-serif;font-weight:800;font-size:1.3rem;letter-spacing:0.1em;color:var(--accent)}
+  .logo-sub{font-family:'JetBrains Mono',monospace;font-size:0.65rem;color:var(--text-dimmer);letter-spacing:0.15em;margin-top:4px}
+  .nav{flex:1;padding:16px 12px;display:flex;flex-direction:column;gap:4px}
+  .nav-section{font-family:'JetBrains Mono',monospace;font-size:0.6rem;color:var(--text-dimmer);letter-spacing:0.2em;padding:12px 12px 6px;text-transform:uppercase}
+  .nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;cursor:pointer;transition:all 0.2s;color:var(--text-dim);font-size:0.875rem;font-weight:500;border:1px solid transparent}
+  .nav-item:hover{background:var(--surface2);color:var(--text);border-color:var(--border)}
+  .nav-item.active{background:rgba(0,212,255,0.08);color:var(--accent);border-color:rgba(0,212,255,0.2)}
+  .nav-icon{font-size:1rem;width:20px;text-align:center}
+  .user-bar{padding:16px;border-top:1px solid var(--border)}
+  .user-top{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+  .user-avatar{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:700;color:var(--bg);font-family:'Syne',sans-serif;flex-shrink:0}
+  .user-info{flex:1;min-width:0}
+  .user-name{font-size:0.8rem;font-weight:500}
+  .user-role{font-size:0.65rem;color:var(--text-dimmer);font-family:'JetBrains Mono',monospace}
+  .logout-btn{background:none;border:none;color:var(--text-dimmer);cursor:pointer;font-size:1rem;padding:4px;transition:color 0.2s}
+  .logout-btn:hover{color:var(--danger)}
+  .token-countdown{background:rgba(0,212,255,0.05);border:1px solid rgba(0,212,255,0.15);border-radius:6px;padding:8px 10px}
+  .token-row{display:flex;justify-content:space-between;margin-bottom:6px}
+  .token-label{font-family:'JetBrains Mono',monospace;font-size:0.6rem;color:var(--text-dimmer)}
+  .token-time{font-family:'JetBrains Mono',monospace;font-size:0.75rem;color:var(--accent);font-weight:600}
+  .token-bar{height:2px;background:var(--border);border-radius:1px;overflow:hidden}
+  .token-bar-fill{height:100%;background:linear-gradient(90deg,var(--accent2),var(--accent));border-radius:1px;transition:width 1s linear}
+  .main{margin-left:240px;min-height:100vh;position:relative;z-index:1}
+  .topbar{padding:20px 32px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:rgba(10,21,32,0.8);backdrop-filter:blur(10px);position:sticky;top:0;z-index:50}
+  .page-title{font-family:'Syne',sans-serif;font-size:1.3rem;font-weight:700}
+  .status-pills{display:flex;gap:8px}
+  .pill{display:flex;align-items:center;gap:6px;padding:4px 10px;border-radius:20px;font-size:0.7rem;font-family:'JetBrains Mono',monospace;border:1px solid}
+  .pill.ok{border-color:rgba(46,213,115,0.3);color:var(--success);background:rgba(46,213,115,0.05)}
+  .pill.warn{border-color:rgba(255,165,2,0.3);color:var(--warning);background:rgba(255,165,2,0.05)}
+  .pill.err{border-color:rgba(255,71,87,0.3);color:var(--danger);background:rgba(255,71,87,0.05)}
+  .pill-dot{width:6px;height:6px;border-radius:50%;background:currentColor;animation:pulse 2s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
+  .content{padding:32px}
+  .page{display:none}
+  .page.active{display:block;animation:fadeIn 0.3s ease}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+  #login-page{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:200}
+  #login-page.checking{display:none}
+  #login-page::before{content:'';position:absolute;inset:0;background-image:linear-gradient(rgba(0,212,255,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(0,212,255,0.04) 1px,transparent 1px);background-size:40px 40px}
+  .login-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:48px;width:420px;position:relative;z-index:1}
+  .login-card::before{content:'';position:absolute;top:-1px;left:50%;transform:translateX(-50%);width:60%;height:2px;background:linear-gradient(90deg,transparent,var(--accent),transparent)}
+  .login-logo{text-align:center;margin-bottom:32px}
+  .login-logo-text{font-family:'Syne',sans-serif;font-size:2rem;font-weight:800;color:var(--accent);letter-spacing:0.1em}
+  .login-logo-sub{font-family:'JetBrains Mono',monospace;font-size:0.7rem;color:var(--text-dimmer);letter-spacing:0.2em;margin-top:4px}
+  .form-group{margin-bottom:16px}
+  .form-label{display:block;font-size:0.75rem;font-family:'JetBrains Mono',monospace;color:var(--text-dimmer);letter-spacing:0.1em;margin-bottom:6px;text-transform:uppercase}
+  .form-input{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--text);font-size:0.875rem;font-family:'Inter',sans-serif;outline:none;transition:border-color 0.2s}
+  .form-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(0,212,255,0.1)}
+  .form-input::placeholder{color:var(--text-dimmer)}
+  textarea.form-input{resize:vertical;min-height:120px;font-family:'JetBrains Mono',monospace;font-size:0.8rem}
+  .btn{display:inline-flex;align-items:center;gap:8px;padding:10px 20px;border-radius:8px;font-size:0.875rem;font-weight:500;cursor:pointer;border:1px solid;transition:all 0.2s;font-family:'Inter',sans-serif}
+  .btn-primary{background:var(--accent);border-color:var(--accent);color:var(--bg);font-weight:600}
+  .btn-primary:hover{background:transparent;color:var(--accent)}
+  .btn-secondary{background:transparent;border-color:var(--border);color:var(--text-dim)}
+  .btn-secondary:hover{border-color:var(--accent);color:var(--accent)}
+  .btn-danger{background:transparent;border-color:rgba(255,71,87,0.3);color:var(--danger)}
+  .btn-danger:hover{background:rgba(255,71,87,0.1)}
+  .btn-success{background:var(--accent2);border-color:var(--accent2);color:var(--bg);font-weight:600}
+  .btn-success:hover{background:transparent;color:var(--accent2)}
+  .btn-full{width:100%;justify-content:center}
+  .btn:disabled{opacity:0.4;cursor:not-allowed}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:24px;position:relative;overflow:hidden}
+  .card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--border),transparent)}
+  .card-title{font-family:'Syne',sans-serif;font-size:0.9rem;font-weight:700;color:var(--text-dim);letter-spacing:0.05em;margin-bottom:16px;text-transform:uppercase}
+  .stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px}
+  .stat-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;position:relative;overflow:hidden;transition:border-color 0.2s}
+  .stat-card:hover{border-color:var(--accent)}
+  .stat-card::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px}
+  .stat-card:nth-child(1)::after{background:linear-gradient(90deg,var(--accent),transparent)}
+  .stat-card:nth-child(2)::after{background:linear-gradient(90deg,var(--accent2),transparent)}
+  .stat-card:nth-child(3)::after{background:linear-gradient(90deg,var(--accent3),transparent)}
+  .stat-card:nth-child(4)::after{background:linear-gradient(90deg,#a78bfa,transparent)}
+  .stat-label{font-family:'JetBrains Mono',monospace;font-size:0.65rem;color:var(--text-dimmer);letter-spacing:0.15em;text-transform:uppercase;margin-bottom:8px}
+  .stat-value{font-family:'Syne',sans-serif;font-size:clamp(0.75rem,1.8vw,1.35rem);font-weight:800;line-height:1;transition:all 0.5s;word-break:break-all}
+  .stat-card:nth-child(1) .stat-value{color:var(--accent)}
+  .stat-card:nth-child(2) .stat-value{color:var(--accent2)}
+  .stat-card:nth-child(3) .stat-value{color:var(--accent3)}
+  .stat-card:nth-child(4) .stat-value{color:#a78bfa}
+  .stat-sub{font-size:0.75rem;color:var(--text-dimmer);margin-top:4px}
+  .table-wrap{overflow-x:auto;border-radius:12px;border:1px solid var(--border)}
+  table{width:100%;border-collapse:collapse;font-size:0.82rem}
+  th{background:var(--surface2);padding:12px 16px;text-align:left;font-family:'JetBrains Mono',monospace;font-size:0.65rem;letter-spacing:0.15em;color:var(--text-dimmer);text-transform:uppercase;border-bottom:1px solid var(--border)}
+  td{padding:12px 16px;border-bottom:1px solid rgba(26,58,92,0.4);color:var(--text-dim)}
+  tr:last-child td{border-bottom:none}
+  tr:hover td{background:rgba(0,212,255,0.03);color:var(--text)}
+  .mono{font-family:'JetBrains Mono',monospace;font-size:0.75rem}
+  .badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:0.65rem;font-family:'JetBrains Mono',monospace;font-weight:600;letter-spacing:0.05em}
+  .badge-ecg{background:rgba(0,212,255,0.15);color:var(--accent)}
+  .badge-bcg{background:rgba(0,255,136,0.15);color:var(--accent2)}
+  .badge-ppg{background:rgba(255,107,53,0.15);color:var(--accent3)}
+  .badge-eeg{background:rgba(167,139,250,0.15);color:#a78bfa}
+  .badge-eda{background:rgba(255,165,2,0.15);color:var(--warning)}
+  .badge-imu{background:rgba(255,71,87,0.15);color:var(--danger)}
+  .alert{padding:12px 16px;border-radius:8px;font-size:0.82rem;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+  .alert-success{background:rgba(46,213,115,0.1);border:1px solid rgba(46,213,115,0.3);color:var(--success)}
+  .alert-error{background:rgba(255,71,87,0.1);border:1px solid rgba(255,71,87,0.3);color:var(--danger)}
+  .alert-info{background:rgba(0,212,255,0.1);border:1px solid rgba(0,212,255,0.3);color:var(--accent)}
+  #toast-container{position:fixed;bottom:24px;right:24px;z-index:9999;display:flex;flex-direction:column;gap:8px}
+  .toast{padding:12px 16px;border-radius:8px;font-size:0.82rem;display:flex;align-items:center;gap:10px;min-width:280px;max-width:360px;backdrop-filter:blur(10px);animation:slideIn 0.3s ease;box-shadow:0 4px 20px rgba(0,0,0,0.4)}
+  .toast.success{background:rgba(46,213,115,0.15);border:1px solid rgba(46,213,115,0.3);color:var(--success)}
+  .toast.error{background:rgba(255,71,87,0.15);border:1px solid rgba(255,71,87,0.3);color:var(--danger)}
+  .toast.info{background:rgba(0,212,255,0.15);border:1px solid rgba(0,212,255,0.3);color:var(--accent)}
+  .toast.warning{background:rgba(255,165,2,0.15);border:1px solid rgba(255,165,2,0.3);color:var(--warning)}
+  @keyframes slideIn{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:translateX(0)}}
+  @keyframes slideOut{from{opacity:1;transform:translateX(0)}to{opacity:0;transform:translateX(20px)}}
+  .progress-wrap{margin:16px 0}
+  .progress-label{display:flex;justify-content:space-between;font-size:0.75rem;color:var(--text-dimmer);font-family:'JetBrains Mono',monospace;margin-bottom:6px}
+  .progress-bar{height:4px;background:var(--border);border-radius:2px;overflow:hidden}
+  .progress-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:2px;transition:width 0.3s ease;width:0%}
+  @keyframes progressPulse{0%,100%{opacity:1}50%{opacity:0.6}}
+  .chart-wrap{position:relative;height:200px;margin-top:8px}
+  .chart-wrap-lg{position:relative;height:280px;margin-top:8px}
+  .spinner{width:16px;height:16px;border:2px solid rgba(0,212,255,0.3);border-top-color:var(--accent);border-radius:50%;animation:spin 0.6s linear infinite;display:inline-block}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+  .file-item{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border:1px solid var(--border);border-radius:8px;margin-bottom:8px;transition:border-color 0.2s}
+  .file-item:hover{border-color:var(--accent)}
+  .file-info{display:flex;align-items:center;gap:12px}
+  .file-icon{width:36px;height:36px;border-radius:8px;background:rgba(0,212,255,0.1);border:1px solid rgba(0,212,255,0.2);display:flex;align-items:center;justify-content:center;font-size:1rem}
+  .file-name{font-size:0.85rem;font-weight:500}
+  .file-meta{font-size:0.7rem;color:var(--text-dimmer);font-family:'JetBrains Mono',monospace}
+  .file-actions{display:flex;gap:8px}
+  .response-box{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:16px;font-family:'JetBrains Mono',monospace;font-size:0.75rem;color:var(--accent2);max-height:300px;overflow-y:auto;white-space:pre-wrap;word-break:break-all;margin-top:16px}
+  .tabs{display:flex;gap:4px;margin-bottom:20px;border-bottom:1px solid var(--border)}
+  .tab{padding:10px 16px;font-size:0.82rem;font-weight:500;cursor:pointer;color:var(--text-dim);border-bottom:2px solid transparent;margin-bottom:-1px;transition:all 0.2s}
+  .tab:hover{color:var(--text)}
+  .tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+  .tab-panel{display:none}
+  .tab-panel.active{display:block}
+  .health-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px}
+  .health-item{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:16px;text-align:center;transition:all 0.3s}
+  .health-item.ok{border-color:rgba(46,213,115,0.3)}
+  .health-item.err{border-color:rgba(255,71,87,0.3)}
+  .health-icon{font-size:1.5rem;margin-bottom:8px}
+  .health-name{font-size:0.75rem;font-family:'JetBrains Mono',monospace;color:var(--text-dimmer)}
+  .health-status{font-size:0.7rem;margin-top:4px;font-weight:600}
+  .health-item.ok .health-status{color:var(--success)}
+  .health-item.err .health-status{color:var(--danger)}
+  .waveform-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;margin-top:16px}
+  .waveform-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+  .waveform-title{font-family:'Syne',sans-serif;font-size:0.9rem;font-weight:700}
+  .waveform-meta{display:flex;gap:12px}
+  .waveform-stat{font-family:'JetBrains Mono',monospace;font-size:0.7rem;color:var(--text-dimmer)}
+  .waveform-stat span{color:var(--accent)}
+  .filters{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:12px}
+  .realtime-dot{width:8px;height:8px;border-radius:50%;background:var(--accent2);animation:pulse 1.5s infinite;display:inline-block;margin-right:6px}
+  ::-webkit-scrollbar{width:6px;height:6px}
+  ::-webkit-scrollbar-track{background:var(--bg)}
+  ::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+</style>
+<script>
+  if(localStorage.getItem('mw_token')||localStorage.getItem('mw_refresh')){
+    document.addEventListener('DOMContentLoaded',function(){
+      var lp=document.getElementById('login-page');
+      if(lp)lp.classList.add('checking');
+    });
+  }
+</script>
+</head>
+<body>
+<div id="toast-container"></div>
+
+<!-- LOGIN -->
+<div id="login-page">
+  <div class="login-card" id="login-form-card">
+    <div class="login-logo">
+      <div class="login-logo-text">MED-API</div>
+      <div class="login-logo-sub">MEDWEAR · ETH Zürich SCAI-Lab</div>
+    </div>
+    <div id="login-alert"></div>
+    <div class="form-group"><label class="form-label">Username</label><input type="text" class="form-input" id="login-username" placeholder="Enter username"></div>
+    <div class="form-group"><label class="form-label">Password</label><input type="password" class="form-input" id="login-password" placeholder="••••••••"></div>
+    <div id="login-progress" class="progress-wrap" style="display:none;"><div class="progress-bar"><div class="progress-fill" style="width:100%;animation:progressPulse 1s ease infinite;"></div></div></div>
+    <button class="btn btn-primary btn-full" onclick="doLogin()" id="login-btn">Sign In</button>
+    <div style="margin-top:16px;text-align:center;font-size:0.7rem;color:var(--text-dimmer);font-family:'JetBrains Mono',monospace;">Secured by Keycloak OAuth2.0</div>
+  </div>
+
+  <div class="login-card" id="change-password-card" style="display:none;">
+    <div class="login-logo">
+      <div class="login-logo-text">MED-API</div>
+      <div class="login-logo-sub">Change Password Required</div>
+    </div>
+    <div class="alert alert-info" style="margin-bottom:16px;font-size:0.82rem;">🔐 Your account requires a password change before continuing.</div>
+    <div id="change-password-alert"></div>
+    <div class="form-group"><label class="form-label">Current Password</label><input type="password" class="form-input" id="cp-old" placeholder="Temporary password"></div>
+    <div class="form-group"><label class="form-label">New Password</label><input type="password" class="form-input" id="cp-new" placeholder="New password (min 8 chars)"></div>
+    <div class="form-group"><label class="form-label">Confirm New Password</label><input type="password" class="form-input" id="cp-confirm" placeholder="Repeat new password"></div>
+    <button class="btn btn-primary btn-full" onclick="doChangePassword()" id="cp-btn">Update Password</button>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app" style="display:none;">
+  <div class="sidebar">
+    <div class="logo"><div class="logo-title">MED-API</div><div class="logo-sub">MEDWEAR Platform</div></div>
+    <nav class="nav">
+      <div class="nav-section">Overview</div>
+      <div class="nav-item active" onclick="showPage('dashboard',this)"><span class="nav-icon">⬡</span> Dashboard</div>
+      <div class="nav-section">Data</div>
+      <div class="nav-item" id="nav-upload" style="display:none;" onclick="showPage('upload',this)"><span class="nav-icon">↑</span> Upload Batch</div>
+      <div class="nav-item" onclick="showPage('query',this)"><span class="nav-icon">⊞</span> Query Data</div>
+      <div class="nav-item" onclick="showPage('timeline',this)"><span class="nav-icon">◎</span> Patient Timeline</div>
+
+      <div class="nav-item" onclick="showPage('files',this)"><span class="nav-icon">◫</span> File Manager</div>
+      <div class="nav-item" id="nav-activities" style="display:none;" onclick="showPage('activities',this)"><span class="nav-icon">◎</span> Activities</div>
+      <div class="nav-section">System</div>
+      <div class="nav-item" id="nav-admin" style="display:none;" onclick="showPage('admin',this)"><span class="nav-icon">⚙</span> Admin</div>
+      <div class="nav-item" onclick="showPage('health',this)"><span class="nav-icon">◈</span> Health Check</div>
+    </nav>
+    <div class="user-bar">
+      <div class="user-top">
+        <div class="user-avatar" id="user-avatar">?</div>
+        <div class="user-info"><div class="user-name" id="user-name">—</div><div class="user-role" id="user-role">—</div></div>
+        <button class="logout-btn" onclick="doLogout()" title="Logout">⏻</button>
+      </div>
+      <div class="token-countdown">
+        <div class="token-row"><div class="token-label">TOKEN EXPIRES</div><div class="token-time" id="token-time">—</div></div>
+        <div class="token-bar"><div class="token-bar-fill" id="token-bar" style="width:100%;"></div></div>
+      </div>
+      <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);">
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <span style="font-size:0.72rem;color:var(--text-dimmer);">🔐 2FA</span>
+          <span id="tfa-status" style="font-size:0.68rem;color:var(--text-dimmer);">—</span>
+          <button id="tfa-btn" class="btn btn-secondary" style="font-size:0.68rem;padding:2px 8px;" onclick="toggle2FA()">—</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <div class="main">
+    <div class="topbar">
+      <div class="page-title" id="topbar-title">Dashboard</div>
+      <div style="display:flex;align-items:center;gap:12px;">
+        <a id="topbar-grafana" href="http://localhost:3001" target="_blank" class="btn btn-secondary" style="padding:6px 12px;font-size:0.75rem;text-decoration:none;display:none;">📊 Grafana</a>
+        <a href="https://localhost/docs" target="_blank" class="btn btn-secondary" style="padding:6px 12px;font-size:0.75rem;text-decoration:none;">📖 API Docs</a>
+        <button class="btn btn-secondary" onclick="toggleTheme()" id="theme-btn" style="padding:6px 12px;font-size:0.75rem;">☀️ Light</button>
+        <div class="status-pills" id="status-pills"><div class="pill ok"><div class="pill-dot"></div>API Online</div></div>
+      </div>
+    </div>
+    <div class="content">
+
+      <!-- DASHBOARD -->
+      <div class="page active" id="page-dashboard">
+        <div id="dashboard-project-filter" style="display:none;margin-bottom:16px;">
+          <div class="card" style="padding:12px 16px;">
+            <div style="display:flex;align-items:center;gap:12px;">
+              <span style="font-size:0.85rem;font-weight:600;color:var(--text-dim);">Viewing project:</span>
+              <select class="form-input" id="dashboard-project-select" style="width:220px;" onchange="loadDashboard()">
+                <option value="">All Projects</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:20px;">
+          <span class="realtime-dot"></span>
+          <span style="font-size:0.75rem;color:var(--text-dimmer);font-family:'JetBrains Mono',monospace;">Live · Auto-refresh every 30s</span>
+        </div>
+        <div class="stats-grid">
+          <div class="stat-card"><div class="stat-label">Total Batches</div><div class="stat-value" id="stat-batches">—</div><div class="stat-sub">uploaded batches</div></div>
+          <div class="stat-card"><div class="stat-label">Total Samples</div><div class="stat-value" id="stat-samples">—</div><div class="stat-sub">data points</div></div>
+          <div class="stat-card"><div class="stat-label">Signal Types</div><div class="stat-value" id="stat-types">—</div><div class="stat-sub">active types</div></div>
+          <div class="stat-card"><div class="stat-label">Patients</div><div class="stat-value" id="stat-patients">—</div><div class="stat-sub">unique IDs</div></div>
+        </div>
+        <div class="card" style="margin-bottom:20px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px;">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <div class="realtime-dot"></div>
+              <div class="card-title" style="margin-bottom:0;" id="live-signal-title">Live ECG Simulation</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;">
+              <select id="live-signal-type" onchange="onLiveSignalChange()" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:0.65rem;padding:4px 8px;cursor:pointer;outline:none;">
+                <option value="ECG">ECG</option>
+                <option value="BCG">BCG</option>
+                <option value="PPG">PPG</option>
+                <option value="EEG">EEG</option>
+                <option value="EDA">EDA</option>
+                <option value="IMU">IMU</option>
+              </select>
+              <select id="live-signal-hz" onchange="onLiveSignalChange()" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:0.65rem;padding:4px 8px;cursor:pointer;outline:none;">
+                <option value="50">50 Hz</option>
+                <option value="100">100 Hz</option>
+                <option value="250" selected>250 Hz</option>
+                <option value="500">500 Hz</option>
+                <option value="1000">1000 Hz</option>
+              </select>
+              <div id="live-signal-unit" style="font-family:'JetBrains Mono',monospace;font-size:0.65rem;color:var(--accent);padding:4px 8px;background:rgba(0,212,255,0.08);border-radius:6px;border:1px solid rgba(0,212,255,0.2);">mV</div>
+            </div>
+          </div>
+          <div style="height:130px;position:relative;"><canvas id="liveECGChart"></canvas></div>
+          <div style="display:flex;justify-content:space-between;margin-top:6px;">
+            <div style="font-family:'JetBrains Mono',monospace;font-size:0.6rem;color:var(--text-dimmer);">0s</div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:0.6rem;color:var(--text-dimmer);" id="live-duration-label">0.8s</div>
+          </div>
+        </div>
+        <div class="grid-2">
+          <div class="card"><div class="card-title">Signal Distribution</div><div class="chart-wrap"><canvas id="signalChart"></canvas></div></div>
+          <div class="card"><div class="card-title">Latest Activity</div>
+            <div class="table-wrap"><table><thead><tr><th>Signal</th><th>Patient</th><th>Samples</th><th>Time</th></tr></thead><tbody id="recent-tbody"><tr><td colspan="4" style="text-align:center;color:var(--text-dimmer);padding:24px;">Loading...</td></tr></tbody></table></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- UPLOAD -->
+      <div class="page" id="page-upload">
+        <div class="tabs">
+          <div class="tab active" onclick="switchTab('upload','json',this)">JSON Upload</div>
+          <div class="tab" onclick="switchTab('upload','csv',this)">CSV Upload</div>
+          <div class="tab" onclick="switchTab('upload','raw',this)">Raw File</div>
+        </div>
+        <div class="tab-panel active" id="upload-tab-json">
+          <div class="grid-2">
+            <div class="card">
+              <div class="card-title">Batch Information</div>
+              <div class="form-group"><label class="form-label">Signal Type</label><select class="form-input" id="up-signal"><option>ECG</option><option>BCG</option><option>PPG</option><option>IMU</option><option>EEG</option><option>EDA</option></select></div>
+              <div class="form-group"><label class="form-label">Patient ID</label><input type="text" class="form-input" id="up-patient" placeholder="123456"></div>
+              <div class="form-group"><label class="form-label">Device ID</label><input type="text" class="form-input" id="up-device" placeholder="polar-h10-01"></div>
+              <div class="form-group"><label class="form-label">Idempotency Key</label><input type="text" class="form-input" id="up-ikey" placeholder="auto-generated if empty"></div>
+              <div class="form-group" id="up-project-group" style="margin-top:16px;">
+                <label class="form-label">Project</label>
+                <select class="form-input" id="up-project">
+                  <option value="">Loading projects...</option>
+                </select>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-title">Signal Data</div>
+              <div class="form-group"><label class="form-label">Unit</label><select class="form-input" id="up-unit"><option>mV</option><option>uV</option><option>V</option><option>g</option><option>uS</option></select></div>
+              <div class="form-group"><label class="form-label">Start Time</label><input type="datetime-local" class="form-input" id="up-start"></div>
+              <div class="form-group"><label class="form-label">End Time</label><input type="datetime-local" class="form-input" id="up-end"></div>
+              <div class="form-group"><label class="form-label">Sampling Rate (Hz)</label><input type="number" class="form-input" id="up-rate" placeholder="250"></div>
+              <div class="form-group"><label class="form-label">Samples (comma-separated)</label><textarea class="form-input" id="up-samples" placeholder="0.12, 0.15, 0.11, 0.10, 0.13" style="min-height:80px;"></textarea></div>
+            </div>
+          </div>
+          <div id="upload-progress" class="progress-wrap" style="display:none;">
+            <div class="progress-label"><span>Uploading...</span><span id="upload-pct">0%</span></div>
+            <div class="progress-bar"><div class="progress-fill" id="upload-fill"></div></div>
+          </div>
+          <div id="upload-alert"></div>
+          <button class="btn btn-success" onclick="doUpload()" id="upload-btn" style="margin-top:12px;">↑ Upload Batch</button>
+          <div id="upload-response" class="response-box" style="display:none;"></div>
+        </div>
+        <div class="tab-panel" id="upload-tab-csv">
+          <div class="card">
+            <div class="card-title">CSV Upload</div>
+            <div class="alert alert-info">Format: patient_id, device_id, signal_type, uuid, schema_id, source_creation_date_time, sampling_rate_hz, start_date_time, end_date_time, unit, samples, signal_quality (ECG), idempotency_key</div>
+            <div class="form-group"><label class="form-label">CSV Content</label><textarea class="form-input" id="csv-content" style="min-height:200px;" placeholder="patient_id,device_id,..."></textarea></div>
+            <div id="csv-alert"></div>
+            <button class="btn btn-success" onclick="doCSVUpload()">↑ Upload CSV</button>
+            <div id="csv-response" class="response-box" style="display:none;"></div>
+          </div>
+        </div>
+        <div class="tab-panel" id="upload-tab-raw">
+          <div class="card">
+            <div class="card-title">Raw File Upload (.cwa / .json / .csv)</div>
+            <div class="alert alert-info">Max file size: 1 GB. Stored in MinIO medwear-bronze bucket.</div>
+            <div class="form-group" id="raw-project-group" style="display:none;"><label class="form-label">Project</label><select class="form-input" id="raw-project-id"><option value="">— select project —</option></select></div>
+            <div id="drop-zone" style="border:2px dashed var(--border);border-radius:12px;padding:40px;text-align:center;margin-bottom:16px;cursor:pointer;transition:all 0.2s;" ondragover="dragOver(event)" ondragleave="dragLeave(event)" ondrop="dropFile(event)" onclick="document.getElementById('file-input').click()">
+              <div style="font-size:2rem;margin-bottom:8px;">📂</div>
+              <div style="font-family:'JetBrains Mono',monospace;font-size:0.8rem;color:var(--text-dimmer);">Drop .cwa, .json, or .csv file here</div>
+              <div style="font-size:0.7rem;color:var(--text-dimmer);margin-top:4px;">or click to browse</div>
+              <input type="file" id="file-input" accept=".json,.cwa,.csv" style="display:none;" onchange="fileSelected(event)">
+            </div>
+            <div class="form-group"><label class="form-label">Filename</label><input type="text" class="form-input" id="raw-filename" placeholder="sensor_data.json"></div>
+            <div class="form-group"><label class="form-label">JSON Content</label><textarea class="form-input" id="raw-content" style="min-height:120px;" placeholder='{"header": {...}, "body": {...}}'></textarea></div>
+            <div id="raw-alert"></div>
+            <button class="btn btn-success" onclick="doRawUpload()">↑ Upload File</button>
+            <div id="raw-response" class="response-box" style="display:none;"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- QUERY -->
+      <div class="page" id="page-query">
+        <div class="card" style="margin-bottom:20px;">
+          <div class="card-title">Filters</div>
+          <div class="filters">
+            <div class="form-group" style="margin-bottom:0;"><label class="form-label">Patient IDs</label><input type="text" class="form-input" id="q-patients" placeholder="123456, 789012"></div>
+            <div class="form-group" style="margin-bottom:0;"><label class="form-label">Signal Type</label><select class="form-input" id="q-signal"><option value="">All</option><option>ECG</option><option>BCG</option><option>PPG</option><option>IMU</option><option>EEG</option><option>EDA</option></select></div>
+            <div class="form-group" style="margin-bottom:0;"><label class="form-label">Device ID</label><input type="text" class="form-input" id="q-device" placeholder="polar-h10-01"></div>
+            <div class="form-group" id="q-project-group" style="margin-bottom:0;display:none;"><label class="form-label">Project ID</label><input type="text" class="form-input" id="q-project" placeholder="medwear_project1"></div>
+          </div>
+          <div class="filters">
+            <div class="form-group" style="margin-bottom:0;"><label class="form-label">Start Time</label><input type="datetime-local" class="form-input" id="q-start"></div>
+            <div class="form-group" style="margin-bottom:0;"><label class="form-label">End Time</label><input type="datetime-local" class="form-input" id="q-end"></div>
+            <div class="form-group" style="margin-bottom:0;"><label class="form-label">Limit</label><input type="number" class="form-input" id="q-limit" value="20" min="1"></div>
+            <div class="form-group" style="margin-bottom:0;"><label class="form-label">Offset</label><input type="number" class="form-input" id="q-offset" value="0"></div>
+          </div>
+          <div style="display:flex;gap:12px;align-items:center;margin-top:8px;">
+            <label style="display:flex;align-items:center;gap:6px;font-size:0.8rem;color:var(--text-dim);cursor:pointer;"><input type="checkbox" id="q-metadata-only" checked> Metadata only</label>
+            <label style="display:flex;align-items:center;gap:6px;font-size:0.8rem;color:var(--text-dim);cursor:pointer;"><input type="checkbox" id="q-summary"> Summary</label>
+            <label id="q-show-deleted-wrap" style="display:none;align-items:center;gap:6px;font-size:0.8rem;color:#e74c3c;cursor:pointer;"><input type="checkbox" id="q-show-deleted" onchange="doQuery()"> 🗑 Show deleted only</label>
+            <div style="flex:1;"></div>
+            <button class="btn btn-primary" onclick="doQuery()" id="query-btn">⊞ Search</button>
+            <button class="btn btn-secondary" onclick="doQueryCSV()">↓ CSV</button>
+          </div>
+        </div>
+        <div id="query-alert"></div>
+        <div class="card">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+            <div class="card-title" style="margin-bottom:0;">Results <span id="query-count" style="color:var(--accent);font-family:'JetBrains Mono',monospace;font-size:0.8rem;"></span></div>
+          </div>
+          <div class="table-wrap">
+            <table><thead><tr><th>UUID</th><th>Signal</th><th>Patient</th><th>Device</th><th>Phone</th><th>Samples</th><th>Hz</th><th>Created</th><th>Actions</th></tr></thead>
+            <tbody id="query-tbody"><tr><td colspan="9" style="text-align:center;color:var(--text-dimmer);padding:24px;">Run a search to see results</td></tr></tbody></table>
+          </div>
+        </div>
+        <div id="batch-detail" class="card" style="display:none;margin-top:20px;">
+          <div class="card-title">Batch Detail</div>
+          <div id="batch-detail-content"></div>
+          <div id="batch-waveform-wrap" style="display:none;">
+            <div class="waveform-header">
+              <div><div class="waveform-title" id="waveform-title">Signal Waveform</div><div style="font-size:0.7rem;color:var(--text-dimmer);font-family:'JetBrains Mono',monospace;margin-top:2px;" id="waveform-sub"></div></div>
+              <div class="waveform-meta">
+                <div class="waveform-stat">Samples: <span id="wf-samples">—</span></div>
+                <div class="waveform-stat">Rate: <span id="wf-rate">—</span> Hz</div>
+                <div class="waveform-stat">Duration: <span id="wf-duration">—</span>s</div>
+              </div>
+            </div>
+            <div class="chart-wrap-lg"><canvas id="waveformChart"></canvas></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TIMELINE -->
+      <div class="page" id="page-timeline">
+        <div class="card" style="margin-bottom:20px;">
+          <div class="card-title">Patient Timeline</div>
+          <div style="display:flex;gap:12px;align-items:flex-end;">
+            <div class="form-group" style="margin-bottom:0;flex:1;"><label class="form-label">Patient ID</label><input type="text" class="form-input" id="tl-patient" placeholder="123456"></div>
+            <button class="btn btn-primary" onclick="loadTimeline()">Load Timeline</button>
+            <div style="position:relative;display:inline-block;">
+              <button class="btn btn-secondary" style="background:rgba(0,212,255,0.1);border-color:var(--accent);" onclick="toggleBulkMenu(this)" id="bulk-export-btn" disabled>↓ Bulk Export</button>
+              <div id="bulk-export-menu" style="display:none;position:fixed;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:4px;z-index:9999;min-width:130px;box-shadow:0 4px 20px rgba(0,0,0,0.5);">
+                <div style="font-size:0.65rem;color:var(--text-dimmer);padding:4px 10px 6px;border-bottom:1px solid var(--border);margin-bottom:4px;">All Patient Data</div>
+                <button onclick="bulkExport('csv')" style="display:flex;align-items:center;gap:8px;width:100%;text-align:left;background:none;border:none;color:var(--text);font-family:inherit;font-size:0.75rem;padding:7px 10px;cursor:pointer;border-radius:4px;" onmouseover="this.style.background='rgba(0,212,255,0.1)'" onmouseout="this.style.background='none'"><span style="color:var(--accent);">↓</span> CSV</button>
+                <button onclick="bulkExport('wfdb')" style="display:flex;align-items:center;gap:8px;width:100%;text-align:left;background:none;border:none;color:var(--text);font-family:inherit;font-size:0.75rem;padding:7px 10px;cursor:pointer;border-radius:4px;" onmouseover="this.style.background='rgba(0,212,255,0.1)'" onmouseout="this.style.background='none'"><span style="color:var(--accent);">↓</span> WFDB (ZIP)</button>
+                <button onclick="bulkExport('edf')" style="display:flex;align-items:center;gap:8px;width:100%;text-align:left;background:none;border:none;color:var(--text);font-family:inherit;font-size:0.75rem;padding:7px 10px;cursor:pointer;border-radius:4px;" onmouseover="this.style.background='rgba(0,212,255,0.1)'" onmouseout="this.style.background='none'"><span style="color:var(--accent);">↓</span> EDF+</button>
+              </div>
+            </div>
+            <button class="btn btn-secondary" id="grafana-btn" style="display:none;" onclick="openGrafana()">📊 Grafana</button>
+          </div>
+        </div>
+        <div id="tl-alert"></div>
+        <div id="tl-content" style="display:none;">
+          <div class="stats-grid" style="grid-template-columns:repeat(3,1fr);">
+            <div class="stat-card"><div class="stat-label">Total Batches</div><div class="stat-value" id="tl-stat-batches">—</div></div>
+            <div class="stat-card"><div class="stat-label">Total Samples</div><div class="stat-value" id="tl-stat-samples">—</div></div>
+            <div class="stat-card"><div class="stat-label">Signal Types</div><div class="stat-value" id="tl-stat-types">—</div></div>
+          </div>
+          <div class="card" style="margin-bottom:20px;">
+            <div class="card-title">Activity Chart</div>
+            <div class="chart-wrap-lg"><canvas id="timelineChart"></canvas></div>
+          </div>
+          <div class="card">
+            <div class="card-title">Batch Timeline</div>
+            <div id="tl-events"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- FILES -->
+      <div class="page" id="page-files">
+        <div class="alert alert-info" style="margin-bottom:16px;font-size:0.82rem;">
+          📁 Raw sensor files (.json / .cwa) uploaded to MinIO bronze storage, organized by username.<br>
+          📁 Signal data is stored separately in InfluxDB — these are unprocessed files awaiting pipeline processing.
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+          <div style="display:flex;gap:16px;align-items:center;">
+            <label style="display:flex;align-items:center;gap:8px;font-size:0.82rem;color:var(--text-dim);cursor:pointer;"><input type="checkbox" id="my-files-only" onchange="loadFiles()"> My files only</label>
+            <label id="show-deleted-files-wrap" style="display:none;align-items:center;gap:8px;font-size:0.82rem;color:#e74c3c;cursor:pointer;"><input type="checkbox" id="show-deleted-files" onchange="loadFiles()"> 🗑 Show deleted only</label>
+          </div>
+          <div style="display:flex;gap:8px;"><input type="text" class="form-input" id="file-prefix" placeholder="Prefix filter..." style="width:200px;"><button class="btn btn-secondary" onclick="loadFiles()">↻ Refresh</button></div>
+        </div>
+        <div class="card" style="margin-bottom:20px;"><div class="card-title">Buckets</div><div id="buckets-list" style="display:flex;gap:8px;flex-wrap:wrap;"></div></div>
+        <div class="card"><div class="card-title">Files <span id="files-count" style="color:var(--accent);font-family:'JetBrains Mono',monospace;font-size:0.8rem;"></span></div><div id="files-list"><div style="text-align:center;color:var(--text-dimmer);padding:24px;">Loading...</div></div></div>
+      </div>
+
+      <!-- ADMIN -->
+      <div class="page" id="page-admin">
+        <div class="tabs">
+          <div class="tab active" onclick="switchTab('admin','create',this)">Create User</div>
+          <div class="tab" onclick="switchTab('admin','mappings',this)">User Mappings</div>
+          <div class="tab" id="tab-create-project" style="display:none;" onclick="switchTab('admin','project',this)">Create Project</div>
+          <div class="tab" id="tab-settings" style="display:none;" onclick="switchTab('admin','settings',this);loadRetentionSettings()">Project Settings</div>
+        </div>
+
+        <div class="tab-panel active" id="admin-tab-create">
+          <div class="card">
+            <div class="card-title">Create New User</div>
+            <div class="grid-2">
+              <div>
+                <div class="form-group"><label class="form-label">Username</label><input type="text" class="form-input" id="new-username" placeholder="Username"></div>
+                <div class="form-group"><label class="form-label">Temporary Password</label><input type="password" class="form-input" id="new-password" placeholder="Temp1234!"></div>
+                <div class="form-group"><label class="form-label">Role</label>
+                  <select class="form-input" id="new-role" onchange="onRoleChange()">
+                    <option value="collaborator">Collaborator (GET only)</option>
+                    <option value="researcher">Researcher (GET + POST)</option>
+                    <option value="device">Device (POST only)</option>
+                    <option value="project_admin" id="role-project-admin">Project Admin</option>
+                    <option value="global_admin" id="role-global-admin" style="display:none;">Global Admin</option>
+                  </select>
+                </div>
+              </div>
+              <div>
+                <div class="form-group" id="new-project-wrap"><label class="form-label">Project</label>
+                  <select class="form-input" id="new-project">
+                  </select>
+                </div>
+                <div class="alert alert-info" id="global-admin-info" style="display:none;margin-top:8px;">
+                  Global Admin has access to all projects — no project assignment needed.
+                </div>
+              </div>
+            </div>
+            <div id="create-user-alert"></div>
+            <button class="btn btn-success" onclick="createUser()">+ Create User</button>
+          </div>
+        </div>
+
+        <div class="tab-panel" id="admin-tab-project">
+          <div class="card" style="margin-bottom:16px;">
+            <div class="card-title">Create New Project</div>
+            <div class="form-group">
+              <label class="form-label">Project Name</label>
+              <input type="text" class="form-input" id="new-project-name" placeholder="e.g. cardiac_study (will become medwear_cardiac_study)">
+            </div>
+            <div class="alert alert-info" style="margin-top:8px;font-size:0.8rem;">
+              Project name will be prefixed with <b>medwear_</b>. Only letters, numbers and underscores allowed.
+            </div>
+            <div id="create-project-alert"></div>
+            <button class="btn btn-success" onclick="createProject()">+ Create Project</button>
+          </div>
+          <div class="card">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+              <div class="card-title" style="margin-bottom:0;">Existing Projects</div>
+              <label style="display:flex;align-items:center;gap:8px;font-size:0.82rem;color:#e74c3c;cursor:pointer;"><input type="checkbox" id="show-deleted-projects" onchange="loadProjectList()"> 🗑 Show deleted</label>
+            </div>
+            <div id="project-list"><div style="text-align:center;color:var(--text-dimmer);padding:16px;">Loading...</div></div>
+          </div>
+        </div>
+
+        <div class="tab-panel" id="admin-tab-settings">
+          <div class="card">
+            <div class="card-title">Data Retention Policy</div>
+            <div class="alert alert-info" style="margin-bottom:16px;font-size:0.82rem;">
+              Set how long patient data is kept per project. If no policy is set, data is kept indefinitely.
+              Once expired, data is permanently deleted from both the database and InfluxDB.
+            </div>
+            <div class="form-group">
+              <label class="form-label">Project</label>
+              <select class="form-input" id="retention-project" onchange="loadRetentionForProject()">
+                <option value="">Select project…</option>
+              </select>
+            </div>
+            <div id="retention-current" style="margin-bottom:16px;display:none;">
+              <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px 16px;font-size:0.85rem;">
+                Current policy: <span id="retention-current-label" style="color:var(--accent);font-weight:600;"></span>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Set Retention Period</label>
+              <select class="form-input" id="retention-days">
+                <option value="">Never (keep indefinitely)</option>
+                <option value="30">1 month</option>
+                <option value="90">3 months</option>
+                <option value="180">6 months</option>
+                <option value="365">1 year</option>
+                <option value="1095">3 years</option>
+                <option value="2190">6 years</option>
+                <option value="3650">10 years</option>
+              </select>
+            </div>
+            <div id="retention-alert"></div>
+            <button class="btn btn-primary" onclick="saveRetentionPolicy()">Save Policy</button>
+          </div>
+        </div>
+
+        <div class="tab-panel" id="admin-tab-mappings">
+          <div class="card">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+              <div class="card-title" style="margin-bottom:0;">Project Users</div>
+              <label style="display:flex;align-items:center;gap:8px;font-size:0.82rem;color:#e74c3c;cursor:pointer;"><input type="checkbox" id="show-deleted-users" onchange="loadMappings()"> 🗑 Show deleted</label>
+            </div>
+            <div id="mappings-list"><div style="text-align:center;color:var(--text-dimmer);padding:24px;">Loading...</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ACTIVITIES -->
+      <div class="page" id="page-activities">
+        <div style="display:flex;gap:8px;margin-bottom:16px;">
+          <button class="btn btn-primary" id="act-tab-all" onclick="switchActTab('all')" style="font-size:0.8rem;">◎ All Activities</button>
+          <button class="btn btn-secondary" id="act-tab-files" onclick="switchActTab('files')" style="font-size:0.8rem;">📁 File Activities</button>
+        </div>
+        <div class="card" style="margin-bottom:16px;">
+          <div class="card-title" id="act-card-title">Activity Log</div>
+          <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;">
+            <div class="form-group" style="margin-bottom:0;flex:1;min-width:150px;">
+              <label class="form-label">Filter by Username</label>
+              <input type="text" class="form-input" id="act-username" placeholder="researcher1">
+            </div>
+            <div class="form-group" id="act-project-group" style="margin-bottom:0;display:none;flex:1;min-width:150px;">
+              <label class="form-label">Filter by Project</label>
+              <select class="form-input" id="act-project">
+                <option value="">All Projects</option>
+              </select>
+            </div>
+            <div class="form-group" style="margin-bottom:0;">
+              <label class="form-label">Limit</label>
+              <input type="number" class="form-input" id="act-limit" value="50" style="width:80px;">
+            </div>
+            <button class="btn btn-primary" onclick="loadActivities()">⊞ Search</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="table-wrap">
+            <table id="act-table-all">
+              <thead><tr><th>Time</th><th>User</th><th>Method</th><th>Path</th><th>Status</th><th>Duration</th><th id="act-project-col" style="display:none;">Project</th></tr></thead>
+              <tbody id="act-tbody"><tr><td colspan="7" style="text-align:center;color:var(--text-dimmer);padding:24px;">Click Search to load activities</td></tr></tbody>
+            </table>
+            <table id="act-table-files" style="display:none;">
+              <thead><tr><th>Time</th><th>User</th><th>Action</th><th>File</th><th>Status</th><th id="act-file-project-col" style="display:none;">Project</th></tr></thead>
+              <tbody id="act-file-tbody"><tr><td colspan="6" style="text-align:center;color:var(--text-dimmer);padding:24px;">Click Search to load file activities</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- HEALTH -->
+      <div class="page" id="page-health">
+        <div class="health-grid">
+          <div class="health-item" id="h-postgresql"><div class="health-icon">🗄️</div><div class="health-name">PostgreSQL</div><div class="health-status">Checking...</div></div>
+          <div class="health-item" id="h-influxdb"><div class="health-icon">📈</div><div class="health-name">InfluxDB</div><div class="health-status">Checking...</div></div>
+          <div class="health-item" id="h-minio"><div class="health-icon">🗃️</div><div class="health-name">MinIO</div><div class="health-status">Checking...</div></div>
+          <div class="health-item" id="h-keycloak"><div class="health-icon">🔐</div><div class="health-name">Keycloak</div><div class="health-status">Checking...</div></div>
+        </div>
+        <div class="card"><div class="card-title">Raw Response</div><div id="health-response" class="response-box"></div></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+const API=window.location.origin,KC_CLIENT='med-api';
+let token=null,refreshToken=null,tokenExpiry=null,tokenInterval=null,refreshInterval=null,currentUser=null;
+let signalChart=null,waveformChart=null,visChart1=null,visChart2=null,visChartOverlay=null,liveECGChart=null,liveECGInterval=null;
+const COLORS={ECG:'#00d4ff',BCG:'#00ff88',PPG:'#ff6b35',EEG:'#a78bfa',EDA:'#ffa502',IMU:'#ff4757'};
+
+function toast(msg,type='info',dur=3500){
+  const icons={success:'✓',error:'✗',info:'ℹ',warning:'⚠'};
+  const el=document.createElement('div');
+  el.className=`toast ${type}`;
+  el.innerHTML=`<span>${icons[type]}</span><span>${msg}</span>`;
+  document.getElementById('toast-container').appendChild(el);
+  setTimeout(()=>{el.style.animation='slideOut 0.3s ease forwards';setTimeout(()=>el.remove(),300);},dur);
+}
+
+async function tryRefreshToken(){
+  if(!refreshToken)return false;
+  try{
+    const r=await fetch(`${API}/v1/data/auth/refresh`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({refresh_token:refreshToken})});
+    if(!r.ok)return false;
+    const d=await r.json();
+    token=d.access_token;
+    refreshToken=d.refresh_token||refreshToken;
+    localStorage.setItem('mw_token',token);
+    localStorage.setItem('mw_refresh',refreshToken);
+    const pl=JSON.parse(atob(token.split('.')[1]));
+    tokenExpiry=pl.exp;
+    return true;
+  }catch(e){return false;}
+}
+
+async function tryRestoreSession(){
+  const storedToken=localStorage.getItem('mw_token');
+  const storedRefresh=localStorage.getItem('mw_refresh');
+  if(!storedToken&&!storedRefresh)return false;
+  token=storedToken;refreshToken=storedRefresh;
+  const now=Math.floor(Date.now()/1000);
+  let valid=false;
+  if(storedToken){
+    try{const pl=JSON.parse(atob(storedToken.split('.')[1]));if(pl.exp>now+30){tokenExpiry=pl.exp;valid=true;}}catch(e){}
+  }
+  if(!valid&&storedRefresh){valid=await tryRefreshToken();}
+  if(!valid){localStorage.removeItem('mw_token');localStorage.removeItem('mw_refresh');token=null;refreshToken=null;var lp=document.getElementById('login-page');if(lp)lp.classList.remove('checking');return false;}
+  try{
+    const pl=JSON.parse(atob(token.split('.')[1]));
+    currentUser={username:pl.preferred_username,roles:pl.resource_access?.[KC_CLIENT]?.roles||[]};
+    document.getElementById('user-name').textContent=currentUser.username;
+    document.getElementById('user-role').textContent=currentUser.roles.join(', ')||'no role';
+    document.getElementById('user-avatar').textContent=currentUser.username[0].toUpperCase();
+    try{const pr=await apiFetch('/v1/data/admin/users');const pd=await pr.json();const myEntry=pd.users?.find(u=>u.username===currentUser.username);if(myEntry)currentUser.project_id=myEntry.project_id;}catch(e){}
+    if(currentUser.roles.includes('global_admin')||currentUser.roles.includes('project_admin')){
+      document.getElementById('nav-admin').style.display='flex';
+      const navAct=document.getElementById('nav-activities');if(navAct)navAct.style.display='flex';
+    }
+    const canUpload=['global_admin','project_admin','researcher','device'];
+    if(canUpload.some(r=>currentUser.roles.includes(r)))document.getElementById('nav-upload').style.display='flex';
+    if(currentUser.roles.includes('global_admin')){
+      document.getElementById('tab-settings').style.display='flex';
+      document.getElementById('role-global-admin').style.display='';
+      document.getElementById('tab-create-project').style.display='flex';
+      document.getElementById('dashboard-project-filter').style.display='block';
+      document.getElementById('q-project-group').style.display='block';
+      loadDashboardProjectDropdown();
+    }
+    if(currentUser.roles.includes('global_admin')||currentUser.roles.includes('project_admin')){
+      document.getElementById('q-show-deleted-wrap').style.display='flex';
+      const sdf=document.getElementById('show-deleted-files-wrap');if(sdf)sdf.style.display='flex';
+    }
+    loadProjectDropdowns();
+    if(currentUser.roles.includes('project_admin')&&!currentUser.roles.includes('global_admin')){
+      document.getElementById('new-project').closest('.form-group').style.display='none';
+      document.getElementById('tab-create-project').style.display='none';
+      loadUserProjects();
+    }
+    const _isAdmin=currentUser.roles.includes('global_admin')||currentUser.roles.includes('project_admin');
+    if(!_isAdmin){document.getElementById('nav-admin').style.display='none';document.getElementById('page-admin').style.display='none';}
+    if(_isAdmin){const grafanaEl=document.getElementById('topbar-grafana');if(grafanaEl)grafanaEl.style.display='inline-flex';}
+    document.getElementById('login-page').style.display='none';
+    document.getElementById('app').style.display='block';
+    startTokenCountdown();load2FAStatus();loadDashboard();checkHealth();startLiveECG();
+    setInterval(()=>{if(document.getElementById('page-dashboard')?.classList.contains('active')){loadDashboard();checkHealth();}},30000);
+    return true;
+  }catch(e){localStorage.removeItem('mw_token');localStorage.removeItem('mw_refresh');token=null;refreshToken=null;currentUser=null;var lp=document.getElementById('login-page');if(lp)lp.classList.remove('checking');return false;}
+}
+
+document.addEventListener('DOMContentLoaded',()=>tryRestoreSession());
+
+function startTokenCountdown(){
+  if(tokenInterval)clearInterval(tokenInterval);
+  tokenInterval=setInterval(async()=>{
+    if(!tokenExpiry)return;
+    const rem=tokenExpiry-Date.now()/1000;
+    // Auto-refresh 60s before expiry
+    if(rem<=60&&rem>0){
+      const ok=await tryRefreshToken();
+      if(!ok){doLogout();return;}
+    }
+    if(rem<=0){doLogout();return;}
+    const h=Math.floor(rem/3600),m=Math.floor((rem%3600)/60),s=Math.floor(rem%60);
+    document.getElementById('token-time').textContent=`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+    const pct=Math.min(100,(rem/86400)*100);
+    const bar=document.getElementById('token-bar');
+    bar.style.width=pct+'%';
+    bar.style.background=pct<20?'linear-gradient(90deg,#ff4757,#ffa502)':pct<50?'linear-gradient(90deg,#ffa502,#00d4ff)':'linear-gradient(90deg,#00ff88,#00d4ff)';
+  },1000);
+}
+
+async function doLogin(){
+  const btn=document.getElementById('login-btn');
+  const u=document.getElementById('login-username').value.trim();
+  const p=document.getElementById('login-password').value;
+  if(!u||!p){document.getElementById('login-alert').innerHTML='<div class="alert alert-error">✗ Enter username and password</div>';return;}
+  btn.innerHTML='<span class="spinner"></span> Signing in...';btn.disabled=true;
+  document.getElementById('login-progress').style.display='block';
+  try{
+    const r=await fetch(`${API}/v1/data/auth/token`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:u,password:p})});
+    const d=await r.json();
+    if(!r.ok)throw new Error(d?.detail?.detail||d?.detail||'Login failed');
+    token=d.access_token;
+    refreshToken=d.refresh_token||null;
+    localStorage.setItem('mw_token',token);
+    if(refreshToken)localStorage.setItem('mw_refresh',refreshToken);
+    const pl=JSON.parse(atob(token.split('.')[1]));
+    tokenExpiry=pl.exp;
+    currentUser={username:pl.preferred_username,roles:pl.resource_access?.[KC_CLIENT]?.roles||[]};
+    document.getElementById('user-name').textContent=currentUser.username;
+    document.getElementById('user-role').textContent=currentUser.roles.join(', ')||'no role';
+    document.getElementById('user-avatar').textContent=currentUser.username[0].toUpperCase();
+    try{
+      const pr = await apiFetch('/v1/data/admin/users');
+      const pd = await pr.json();
+      const myEntry = pd.users?.find(u => u.username === currentUser.username);
+      if(myEntry) currentUser.project_id = myEntry.project_id;
+    }catch(e){}
+    if(currentUser.roles.includes('global_admin')||currentUser.roles.includes('project_admin')){
+      document.getElementById('nav-admin').style.display='flex';
+      const navAct = document.getElementById('nav-activities');
+      if(navAct) navAct.style.display='flex';
+    }
+    const canUpload = ['global_admin','project_admin','researcher','device'];
+    if(canUpload.some(r => currentUser.roles.includes(r))){
+      document.getElementById('nav-upload').style.display='flex';
+    }
+    if(currentUser.roles.includes('global_admin')){
+      document.getElementById('tab-settings').style.display='flex';
+    }
+    if(currentUser.roles.includes('global_admin')){
+      document.getElementById('role-global-admin').style.display='';
+      document.getElementById('tab-create-project').style.display='flex';
+      document.getElementById('dashboard-project-filter').style.display='block';
+      document.getElementById('q-project-group').style.display='block';
+      loadDashboardProjectDropdown();
+    }
+    if(currentUser.roles.includes('global_admin')||currentUser.roles.includes('project_admin')){
+      document.getElementById('q-show-deleted-wrap').style.display='flex';
+      const sdf = document.getElementById('show-deleted-files-wrap');
+      if(sdf) sdf.style.display='flex';
+    }
+    loadProjectDropdowns();
+    if(currentUser.roles.includes('project_admin') && !currentUser.roles.includes('global_admin')){
+      document.getElementById('new-project').closest('.form-group').style.display='none';
+      document.getElementById('tab-create-project').style.display='none';
+      loadUserProjects();
+    }
+    // Check if 2FA is required
+    try{
+      const tfaRes = await apiFetch('/v1/auth/2fa/status');
+      const tfaData = await tfaRes.json();
+      if(tfaData.enabled) await promptTFALogin();
+    }catch(e){ console.warn('2FA status check failed, skipping:', e); }
+    document.getElementById('login-page').style.display='none';
+    document.getElementById('app').style.display='block';
+    // Ensure admin panel is completely inaccessible for non-admin roles
+    const _isAdmin=currentUser.roles.includes('global_admin')||currentUser.roles.includes('project_admin');
+    if(!_isAdmin){
+      document.getElementById('nav-admin').style.display='none';
+      document.getElementById('page-admin').style.display='none';
+    }
+    if(_isAdmin){
+      const grafanaEl=document.getElementById('topbar-grafana');
+      if(grafanaEl) grafanaEl.style.display='inline-flex';
+    }
+    startTokenCountdown();
+    load2FAStatus();
+    loadDashboard();checkHealth();
+    startLiveECG();
+    toast(`Welcome, ${currentUser.username}!`,'success');
+  }catch(e){
+    if(e.message.includes('not fully set up') || e.message.includes('Account is not')){
+      document.getElementById('login-form-card').style.display='none';
+      document.getElementById('change-password-card').style.display='block';
+      document.getElementById('cp-old').value=document.getElementById('login-password').value;
+    } else {
+      document.getElementById('login-alert').innerHTML=`<div class="alert alert-error">✗ ${e.message}</div>`;
+      toast(e.message,'error');
+    }
+  }finally{btn.innerHTML='Sign In';btn.disabled=false;document.getElementById('login-progress').style.display='none';}
+}
+
+async function doChangePassword(){
+  const oldPw = document.getElementById('cp-old').value;
+  const newPw = document.getElementById('cp-new').value;
+  const confirmPw = document.getElementById('cp-confirm').value;
+  const username = document.getElementById('login-username').value;
+
+  if(!oldPw||!newPw||!confirmPw){toast('Fill all fields','error');return;}
+  if(newPw !== confirmPw){
+    document.getElementById('change-password-alert').innerHTML='<div class="alert alert-error">✗ Passwords do not match</div>';
+    return;
+  }
+  if(newPw.length < 8){
+    document.getElementById('change-password-alert').innerHTML='<div class="alert alert-error">✗ Password must be at least 8 characters</div>';
+    return;
+  }
+
+  const btn = document.getElementById('cp-btn');
+  btn.innerHTML='<span class="spinner"></span> Updating...';
+  btn.disabled=true;
+
+  try{
+    const r = await fetch(`${API}/v1/data/auth/change-password`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({username, old_password: oldPw, new_password: newPw})
+    });
+    const d = await r.json();
+    if(r.ok){
+      toast('Password updated! Please login again.','success');
+      document.getElementById('change-password-card').style.display='none';
+      document.getElementById('login-form-card').style.display='block';
+      document.getElementById('login-password').value='';
+      document.getElementById('change-password-alert').innerHTML='';
+      document.getElementById('cp-old').value='';
+      document.getElementById('cp-new').value='';
+      document.getElementById('cp-confirm').value='';
+    } else {
+      document.getElementById('change-password-alert').innerHTML=`<div class="alert alert-error">✗ ${d.detail?.error||'Failed'}</div>`;
+    }
+  }catch(e){
+    document.getElementById('change-password-alert').innerHTML=`<div class="alert alert-error">✗ ${e.message}</div>`;
+  }finally{
+    btn.innerHTML='Update Password';
+    btn.disabled=false;
+  }
+}
+
+// ── 2FA ──────────────────────────────────────────────────────────────────────
+let _tfaMode = null; // 'setup' | 'disable' | 'login'
+
+async function load2FAStatus(){
+  try{
+    const r = await apiFetch('/v1/auth/2fa/status');
+    const d = await r.json();
+    const enabled = d.enabled;
+    document.getElementById('tfa-status').textContent = enabled ? 'ON' : 'OFF';
+    document.getElementById('tfa-status').style.color = enabled ? '#2ecc71' : 'var(--text-dimmer)';
+    document.getElementById('tfa-btn').textContent = enabled ? 'Disable' : 'Enable';
+    document.getElementById('tfa-btn').className = enabled ? 'btn btn-danger' : 'btn btn-success';
+    document.getElementById('tfa-btn').style = 'font-size:0.68rem;padding:2px 8px;';
+  }catch(e){}
+}
+
+async function toggle2FA(){
+  const isEnabled = document.getElementById('tfa-status').textContent === 'ON';
+  if(isEnabled){
+    _tfaMode = 'disable';
+    document.getElementById('tfa-modal-title').textContent = 'Disable 2FA';
+    document.getElementById('tfa-qr-section').style.display = 'none';
+    document.getElementById('tfa-code-label').textContent = 'Enter your current authenticator code to disable 2FA';
+    document.getElementById('tfa-submit-btn').textContent = 'Disable 2FA';
+    document.getElementById('tfa-submit-btn').className = 'btn btn-danger';
+  } else {
+    _tfaMode = 'setup';
+    document.getElementById('tfa-modal-title').textContent = 'Enable 2FA';
+    document.getElementById('tfa-modal-alert').innerHTML = '<div class="alert alert-info" style="font-size:0.78rem;">Loading QR code...</div>';
+    document.getElementById('tfa-modal').style.display = 'flex';
+    document.getElementById('tfa-code-input').value = '';
+    try{
+      const r = await apiFetch('/v1/auth/2fa/setup', {method:'POST'});
+      const d = await r.json();
+      document.getElementById('tfa-qr-img').src = d.qr_code;
+      document.getElementById('tfa-secret').textContent = d.secret;
+      document.getElementById('tfa-qr-section').style.display = 'block';
+      document.getElementById('tfa-code-label').textContent = 'Enter the 6-digit code from Google Authenticator';
+      document.getElementById('tfa-submit-btn').textContent = 'Enable 2FA';
+      document.getElementById('tfa-submit-btn').className = 'btn btn-success';
+      document.getElementById('tfa-modal-alert').innerHTML = '';
+    }catch(e){ document.getElementById('tfa-modal-alert').innerHTML=`<div class="alert alert-error">✗ ${e.message}</div>`; }
+    return;
+  }
+  document.getElementById('tfa-code-input').value = '';
+  document.getElementById('tfa-modal-alert').innerHTML = '';
+  document.getElementById('tfa-modal').style.display = 'flex';
+}
+
+async function submitTFA(){
+  const code = document.getElementById('tfa-code-input').value.trim();
+  if(code.length !== 6){ toast('Enter 6-digit code','error'); return; }
+  try{
+    let endpoint, method='POST';
+    if(_tfaMode === 'setup')   endpoint = '/v1/auth/2fa/enable';
+    else if(_tfaMode === 'disable') endpoint = '/v1/auth/2fa/disable';
+    else if(_tfaMode === 'login')   endpoint = '/v1/auth/2fa/verify';
+    const r = await apiFetch(endpoint, {method, body:JSON.stringify({code}), headers:{'Content-Type':'application/json'}});
+    const d = await r.json();
+    if(!r.ok) throw new Error(d.detail?.message || 'Invalid code');
+    closeTFAModal();
+    if(_tfaMode !== 'login'){
+      load2FAStatus();
+      toast(_tfaMode==='setup' ? '2FA enabled!' : '2FA disabled','success');
+    }
+    if(_tfaMode === 'login') document.getElementById('tfa-modal')._resolve?.();
+  }catch(e){
+    document.getElementById('tfa-modal-alert').innerHTML=`<div class="alert alert-error">✗ ${e.message}</div>`;
+  }
+}
+
+function closeTFAModal(){
+  document.getElementById('tfa-modal').style.display='none';
+  document.getElementById('tfa-modal')._resolve?.();
+}
+
+function promptTFALogin(){
+  return new Promise(resolve => {
+    _tfaMode = 'login';
+    document.getElementById('tfa-modal-title').textContent = '2FA Verification';
+    document.getElementById('tfa-qr-section').style.display = 'none';
+    document.getElementById('tfa-code-label').textContent = 'Enter the 6-digit code from your authenticator app';
+    document.getElementById('tfa-submit-btn').textContent = 'Verify';
+    document.getElementById('tfa-submit-btn').className = 'btn btn-success';
+    document.getElementById('tfa-code-input').value = '';
+    document.getElementById('tfa-modal-alert').innerHTML = '';
+    document.getElementById('tfa-modal').style.display = 'flex';
+    document.getElementById('tfa-modal')._resolve = resolve;
+  });
+}
+
+document.addEventListener('keydown', e => {
+  if(e.key === 'Enter' && document.getElementById('tfa-modal').style.display === 'flex') submitTFA();
+});
+// ─────────────────────────────────────────────────────────────────────────────
+
+function doLogout(){
+  clearInterval(tokenInterval);clearInterval(refreshInterval);
+  token=null;refreshToken=null;currentUser=null;tokenExpiry=null;
+  localStorage.removeItem('mw_token');localStorage.removeItem('mw_refresh');
+  document.getElementById('login-page').style.display='flex';
+  document.getElementById('app').style.display='none';
+  document.getElementById('login-alert').innerHTML='';
+  document.getElementById('login-username').value='';
+  document.getElementById('login-password').value='';
+  document.getElementById('create-user-alert').innerHTML='';
+  document.getElementById('new-username').value='';
+  document.getElementById('new-password').value='';
+  [signalChart,waveformChart,visChart1,visChart2,visChartOverlay,liveECGChart].forEach(c=>{if(c)c.destroy();});
+  signalChart=waveformChart=visChart1=visChart2=visChartOverlay=liveECGChart=null;
+  if(liveECGInterval)clearInterval(liveECGInterval);
+  location.reload();
+}
+
+function showPage(name,el){
+  const adminOnly=['admin','settings'];
+  const isAdmin=currentUser?.roles?.includes('global_admin')||currentUser?.roles?.includes('project_admin');
+  if(adminOnly.includes(name)&&!isAdmin){
+    toast('Access denied: admin only','error');
+    return;
+  }
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  if(el) el.classList.add('active');
+  const titles={dashboard:'Dashboard',upload:'Upload Batch',query:'Query Data',visualize:'Waveform Visualizer',files:'File Manager',activities:'Activities',admin:'Admin',health:'Health Check'};
+  document.getElementById('topbar-title').textContent=titles[name]||name;
+  if(name==='dashboard'){loadDashboard();if(currentUser?.roles?.includes('global_admin')){loadDashboardProjectDropdown();}}
+  if(name==='query')doQuery();
+  if(name==='activities')loadActivities();
+  if(name==='files'){loadFiles();loadBuckets();}
+  if(name==='health')checkHealth();
+  if(name==='admin'){setTimeout(()=>{loadMappings();loadProjectDropdowns();loadDashboardProjectDropdown();if(currentUser?.roles?.includes('global_admin'))loadProjectList();},100);}
+}
+
+const SIGNAL_META = {
+  ECG: { unit:'mV',  color:'#00d4ff', noise:0.02,  label:'ECG — Electrocardiogram' },
+  BCG: { unit:'mg',  color:'#00ff88', noise:0.015, label:'BCG — Ballistocardiogram' },
+  PPG: { unit:'AU',  color:'#ff6b35', noise:0.01,  label:'PPG — Photoplethysmogram' },
+  EEG: { unit:'µV',  color:'#a78bfa', noise:0.08,  label:'EEG — Electroencephalogram' },
+  EDA: { unit:'µS',  color:'#ffa502', noise:0.005, label:'EDA — Electrodermal Activity' },
+  IMU: { unit:'g',   color:'#ff4757', noise:0.03,  label:'IMU — Inertial Measurement' },
+};
+
+function generateSample(type, t) {
+  const n = () => (Math.random()-0.5);
+  const ph = t % 1.0;
+  switch(type) {
+    case 'ECG': {
+      const p     = 0.25  * Math.exp(-Math.pow(ph-0.10,2)/0.005);
+      const q     = -0.10 * Math.exp(-Math.pow(ph-0.18,2)/0.0002);
+      const r     = 1.50  * Math.exp(-Math.pow(ph-0.20,2)/0.0001);
+      const s     = -0.30 * Math.exp(-Math.pow(ph-0.22,2)/0.0002);
+      const tw    = 0.35  * Math.exp(-Math.pow(ph-0.40,2)/0.008);
+      const base  = Math.sin(t*1.2)*0.05;
+      return base+p+q+r+s+tw + n()*0.02;
+    }
+    case 'BCG': {
+      const i_w = -0.4 * Math.exp(-Math.pow(ph-0.15,2)/0.003);
+      const j_w =  0.9 * Math.exp(-Math.pow(ph-0.22,2)/0.002);
+      const k_w = -0.3 * Math.exp(-Math.pow(ph-0.30,2)/0.003);
+      return i_w+j_w+k_w + n()*0.015;
+    }
+    case 'PPG': {
+      const sys  = 1.0  * Math.exp(-Math.pow(ph-0.25,2)/0.01);
+      const dic  = 0.25 * Math.exp(-Math.pow(ph-0.50,2)/0.005);
+      const base = 0.3  * Math.sin(t*1.1+1);
+      return base+sys+dic + n()*0.01;
+    }
+    case 'EEG': {
+      const alpha = 0.4*Math.sin(t*10*Math.PI*2);
+      const beta  = 0.15*Math.sin(t*20*Math.PI*2);
+      const slow  = 0.2*Math.sin(t*2*Math.PI*2);
+      return alpha+beta+slow + n()*0.08;
+    }
+    case 'EDA': {
+      return 2.0 + 0.3*Math.sin(t*0.3) + (Math.random()<0.005 ? 0.8*Math.exp(-(t%5)/1.5) : 0) + n()*0.005;
+    }
+    case 'IMU': {
+      const step = ph < 0.15 ? 1.2*Math.exp(-Math.pow(ph-0.08,2)/0.001) : 0;
+      const vib  = 0.1*Math.sin(t*30);
+      return step+vib + n()*0.03;
+    }
+    default: return n()*0.1;
+  }
+}
+
+function onLiveSignalChange() {
+  const type = document.getElementById('live-signal-type')?.value || 'ECG';
+  const hz   = parseInt(document.getElementById('live-signal-hz')?.value || '250');
+  const meta = SIGNAL_META[type];
+  const titleEl = document.getElementById('live-signal-title');
+  const unitEl  = document.getElementById('live-signal-unit');
+  const durEl   = document.getElementById('live-duration-label');
+  if(titleEl) titleEl.textContent = `Live ${type} Simulation`;
+  if(unitEl)  { unitEl.textContent = meta.unit; unitEl.style.color = meta.color; unitEl.style.background = meta.color+'18'; unitEl.style.borderColor = meta.color+'40'; }
+  const maxPts = Math.min(hz, 500);
+  const duration = (maxPts / hz).toFixed(2);
+  if(durEl) durEl.textContent = `${duration}s`;
+  startLiveECG(type, hz);
+}
+
+function startLiveECG(type, hz) {
+  type = type || document.getElementById('live-signal-type')?.value || 'ECG';
+  hz   = hz   || parseInt(document.getElementById('live-signal-hz')?.value  || '250');
+  const meta   = SIGNAL_META[type];
+  const ctx    = document.getElementById('liveECGChart');
+  if(!ctx) return;
+  if(liveECGChart) liveECGChart.destroy();
+  if(liveECGInterval) clearInterval(liveECGInterval);
+
+  const maxPts = Math.min(hz, 500);
+  const step   = 1 / hz;
+  let t        = 0;
+  const data   = Array.from({length: maxPts}, () => { const v = generateSample(type, t); t += step; return v; });
+
+  liveECGChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: data.map((_,i) => i),
+      datasets: [{
+        data,
+        borderColor: meta.color,
+        borderWidth: 1.5,
+        pointRadius: 0,
+        tension: 0.3,
+        fill: {target:'origin', above: meta.color+'12', below: meta.color+'06'},
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: false,
+      plugins: { legend:{display:false}, tooltip:{enabled:false} },
+      scales: {
+        x: { display: false },
+        y: {
+          display: true,
+          grid: { color:'rgba(255,255,255,0.04)', drawBorder:false },
+          ticks: { color:'rgba(255,255,255,0.2)', font:{size:9,family:"'JetBrains Mono',monospace"}, maxTicksLimit:4 },
+          border: { display:false },
+        }
+      }
+    }
+  });
+
+  const interval = Math.max(16, Math.round(1000 / hz * 4));
+  liveECGInterval = setInterval(() => {
+    const v = generateSample(type, t);
+    t += step * 4;
+    liveECGChart.data.datasets[0].data.push(v);
+    liveECGChart.data.datasets[0].data.shift();
+    liveECGChart.data.labels.push(t);
+    liveECGChart.data.labels.shift();
+    liveECGChart.update('none');
+  }, interval);
+}
+
+async function loadDashboard(){
+  const isGlobal = currentUser?.roles?.includes('global_admin');
+  let projectParam = '';
+  if(isGlobal){
+    const sel = document.getElementById('dashboard-project-select');
+    if(sel && sel.value) projectParam = `&project_id=${sel.value}`;
+  } else if(currentUser?.project_id){
+    projectParam = `&project_id=${currentUser.project_id}`;
+  }
+  try{
+    const r=await apiFetch(`/v1/data?summary=true${projectParam}`);
+    const d=await r.json();
+    animateCounter('stat-batches',d.total||0);
+    animateCounter('stat-samples',d.total_samples||0);
+    document.getElementById('stat-types').textContent=d.signal_types?.length||'0';
+    document.getElementById('stat-patients').textContent=d.patient_count??d.patients?.length??'0';
+    drawSignalChart(d.signal_types||[], d.signal_counts||{});
+  }catch(e){}
+  try{
+    const r=await apiFetch(`/v1/data?limit=8&metadata_only=true${projectParam}`);
+    const d=await r.json();
+    const tbody=document.getElementById('recent-tbody');
+    tbody.innerHTML=(d.batches?.length?d.batches:[]).map(b=>`<tr><td><span class="badge badge-${b.signal_type?.toLowerCase()}">${b.signal_type}</span></td><td class="mono">${b.patient_id}</td><td class="mono">${fmtNum(b.sample_count)}</td><td class="mono">${fmtDate(b.created_at)}</td></tr>`).join('')||'<tr><td colspan="4" style="text-align:center;color:var(--text-dimmer);padding:16px;">No data</td></tr>';
+  }catch(e){}
+}
+
+function animateCounter(id,target){
+  const el=document.getElementById(id);
+  const start=parseInt(el.textContent.replace(/[^0-9]/g,''))||0;
+  const steps=20,step=(target-start)/steps;let i=0;
+  const iv=setInterval(()=>{i++;el.textContent=fmtNum(Math.round(start+step*i));if(i>=steps){el.textContent=fmtNum(target);clearInterval(iv);}},30);
+}
+
+function drawSignalChart(types, counts){
+  const ctx=document.getElementById('signalChart');if(!ctx)return;
+  if(signalChart)signalChart.destroy();
+  if(!types.length){ctx.getContext('2d').clearRect(0,0,ctx.width,ctx.height);return;}
+  const data=types.map(t=>counts[t]||1);
+  const labels=types.map(t=>`${t} (${counts[t]||1})`);
+  signalChart=new Chart(ctx,{type:'doughnut',data:{labels,datasets:[{data,backgroundColor:types.map(t=>COLORS[t]||'#888'),borderColor:'transparent',borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{color:'#7a9ab0',font:{family:"'JetBrains Mono',monospace",size:11},padding:12}}},cutout:'65%'}});
+}
+
+async function doUpload(){
+  const btn=document.getElementById('upload-btn');
+  const signal=document.getElementById('up-signal').value;
+  const patient=String(document.getElementById('up-patient').value).trim();
+  const device=document.getElementById('up-device').value.trim();
+  const samplesRaw=document.getElementById('up-samples').value;
+  const startRaw=document.getElementById('up-start').value;
+  const endRaw=document.getElementById('up-end').value;
+  if(!patient||!device||!samplesRaw||!startRaw||!endRaw){toast('Please fill all required fields','error');return;}
+  const samples=samplesRaw.split(',').map(s=>parseFloat(s.trim())).filter(s=>!isNaN(s));
+  const start=new Date(startRaw).toISOString(),end=new Date(endRaw).toISOString();
+  const bodyKey=signal==='ECG'?'ecg_lead_data':signal==='BCG'?'bcg_sensor_readings':'signal_data';
+  const body={unit:document.getElementById('up-unit').value,effective_time_frame:{time_interval:{start_date_time:start,end_date_time:end}},[bodyKey]:samples};
+  if(signal==='ECG')body.signal_quality=samples.map(()=>1.0);
+  const payload={batches:[{header:{uuid:crypto.randomUUID(),schema_id:`${signal.toLowerCase()}-lead-1.x`,source_creation_date_time:start,acquisition_rate:{value:parseFloat(document.getElementById('up-rate').value)||250,unit:'Hz',number_of_times:1}},body,signal_type:signal,patient_id:patient,device_id:device,project_id:document.getElementById('up-project').value||currentUser.project_id||undefined}]};
+  btn.innerHTML='<span class="spinner"></span> Uploading...';btn.disabled=true;
+  const prog=document.getElementById('upload-progress'),fill=document.getElementById('upload-fill'),pct=document.getElementById('upload-pct');
+  prog.style.display='block';fill.style.width='0%';
+  let p=0;const iv=setInterval(()=>{p=Math.min(90,p+10);fill.style.width=p+'%';pct.textContent=p+'%';},100);
+  try{
+    const r=await apiFetch('/v1/data/batch',{method:'POST',body:JSON.stringify(payload),headers:{'Content-Type':'application/json'}});
+    const d=await r.json();
+    clearInterval(iv);fill.style.width='100%';pct.textContent='100%';
+    if(r.ok){
+      const warnings=(d.results||[]).filter(r=>r.overlap_warning).map(r=>r.overlap_warning);
+      if(warnings.length){
+        toast('Uploaded — overlap warning!','warn');
+        document.getElementById('upload-alert').innerHTML=`<div class="alert alert-warn">⚠ Uploaded with overlap warning:<br>${warnings.join('<br>')}</div>`;
+      }else{
+        toast(`Batch uploaded — ${samples.length} samples`,'success');
+        document.getElementById('upload-alert').innerHTML='<div class="alert alert-success">✓ Uploaded successfully</div>';
+      }
+    }else{toast(d.detail?.error||'Upload failed','error');document.getElementById('upload-alert').innerHTML=`<div class="alert alert-error">✗ ${JSON.stringify(d.detail)}</div>`;}
+    showResponse('upload-response',d);
+  }catch(e){toast(e.message,'error');}finally{
+    btn.innerHTML='↑ Upload Batch';btn.disabled=false;
+    setTimeout(()=>{prog.style.display='none';fill.style.width='0%';},1500);
+  }
+}
+
+async function doCSVUpload(){
+  const content=document.getElementById('csv-content').value;
+  if(!content.trim()){toast('No CSV content','error');return;}
+  try{
+    const r=await apiFetch('/v1/data/batch',{method:'POST',body:content,headers:{'Content-Type':'text/csv'}});
+    const d=await r.json();
+    if(r.ok)toast('CSV uploaded successfully','success');else toast(d.detail?.error||'Error','error');
+    document.getElementById('csv-alert').innerHTML=r.ok?'<div class="alert alert-success">✓ Uploaded</div>':`<div class="alert alert-error">✗ Error</div>`;
+    showResponse('csv-response',d);
+  }catch(e){toast(e.message,'error');}
+}
+
+async function doRawUpload(){
+  const filename=document.getElementById('raw-filename').value.trim();
+  const content=document.getElementById('raw-content').value;
+  if(!filename||!content){toast('Fill filename and content','error');return;}
+  const isGlobal=currentUser?.roles?.includes('global_admin');
+  const projId=document.getElementById('raw-project-id')?.value||'';
+  if(isGlobal&&!projId){toast('Select a project first','error');return;}
+  const url='/v1/data/upload'+(projId?`?project_id=${encodeURIComponent(projId)}`:'');
+  try{
+    const r=await apiFetch(url,{method:'POST',body:content,headers:{'Content-Type':'application/octet-stream','X-Filename':filename}});
+    const d=await r.json();
+    if(r.ok)toast(`Saved to ${d.minio_path}`,'success');else toast(d.detail?.error||'Error','error');
+    document.getElementById('raw-alert').innerHTML=r.ok?`<div class="alert alert-success">✓ ${d.minio_path}</div>`:`<div class="alert alert-error">✗ ${d.detail?.error}</div>`;
+    showResponse('raw-response',d);
+  }catch(e){toast(e.message,'error');}
+}
+
+async function doQuery(){
+  const btn=document.getElementById('query-btn');
+  btn.innerHTML='<span class="spinner"></span>';btn.disabled=true;
+  document.getElementById('query-alert').innerHTML='';
+  document.getElementById('batch-detail').style.display='none';
+  const params=new URLSearchParams();
+  const patients=document.getElementById('q-patients').value.trim();
+  const signal=document.getElementById('q-signal').value;
+  const device=document.getElementById('q-device').value.trim();
+  const project=document.getElementById('q-project').value.trim();
+  const start=document.getElementById('q-start').value;
+  const end=document.getElementById('q-end').value;
+  if(patients)params.append('patient_ids',patients);
+  if(signal)params.append('signal_type',signal);
+  if(device)params.append('device_id',device);
+  if(project)params.append('project_id',project);
+  if(start)params.append('start',new Date(start).toISOString());
+  if(end)params.append('end',new Date(end).toISOString());
+  params.append('limit',document.getElementById('q-limit').value||20);
+  params.append('offset',document.getElementById('q-offset').value||0);
+  if(document.getElementById('q-metadata-only').checked)params.append('metadata_only','true');
+  if(document.getElementById('q-summary').checked)params.append('summary','true');
+  if(document.getElementById('q-show-deleted')?.checked){params.append('marked_for_deletion','true');params.append('metadata_only','true');}
+  try{
+    const r=await apiFetch(`/v1/data?${params}`);
+    const d=await r.json();
+    if(!r.ok){
+      let msg=d?.detail?.error||d?.detail||'Query failed';
+      if(Array.isArray(msg)) msg=msg.map(e=>e.msg||JSON.stringify(e)).join('; ');
+      document.getElementById('query-alert').innerHTML=`<div class="alert alert-error">✗ ${msg}</div>`;
+      toast(String(msg),'error');
+      return;
+    }
+    if(document.getElementById('q-summary').checked){
+      document.getElementById('query-count').textContent='';
+      document.getElementById('query-tbody').innerHTML=`<tr><td colspan="8"><div class="response-box" style="margin:0;">${JSON.stringify(d,null,2)}</div></td></tr>`;
+    }else{
+      const batches=d.batches||[];
+      document.getElementById('query-count').textContent=`(${d.count} results)`;
+      const canDelete = currentUser?.roles?.includes('global_admin') || currentUser?.roles?.includes('project_admin');
+      document.getElementById('query-tbody').innerHTML=batches.length?batches.map(b=>`<tr style="${b.is_deleted?'opacity:0.5;background:rgba(255,71,87,0.05);':''}"><td class="mono" style="max-width:120px;overflow:hidden;text-overflow:ellipsis;cursor:pointer;color:var(--accent);" onclick="copyUUID('${b.uuid}')" title='Click to copy UUID'>${b.uuid.split('-')[0]}... 📋</td><td><span class="badge badge-${b.signal_type?.toLowerCase()}">${b.signal_type}</span></td><td class="mono">${b.patient_id}</td><td class="mono">${(b.device_id||'').split('|')[0]}</td><td class="mono" style="color:var(--text-dimmer);">${(b.device_id||'').split('|')[1]||'-'}</td><td class="mono">${fmtNum(b.sample_count)}</td><td class="mono">${b.sampling_rate_hz}</td><td class="mono">${fmtDate(b.created_at)}</td><td style="display:flex;gap:4px;flex-wrap:wrap;"><button class="btn btn-secondary" style="padding:4px 8px;font-size:0.7rem;" onclick="showBatchDetail('${b.uuid}')">〜 View</button><div style="position:relative;display:inline-block;"><button class="btn btn-secondary" style="padding:4px 8px;font-size:0.7rem;background:rgba(0,212,255,0.1);border-color:var(--accent);" onclick="toggleExportMenu('${b.uuid}',this)">↓ Export</button><div id="exp-${b.uuid}" style="display:none;position:fixed;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:4px;z-index:9999;min-width:130px;box-shadow:0 4px 20px rgba(0,0,0,0.5);"><div style="font-size:0.65rem;color:var(--text-dimmer);padding:4px 10px 6px;border-bottom:1px solid var(--border);margin-bottom:4px;">Export Format</div><button onclick="exportBatch('${b.uuid}','csv')" style="display:flex;align-items:center;gap:8px;width:100%;text-align:left;background:none;border:none;color:var(--text);font-family:inherit;font-size:0.75rem;padding:7px 10px;cursor:pointer;border-radius:4px;" onmouseover="this.style.background='rgba(0,212,255,0.1)'" onmouseout="this.style.background='none'"><span style="color:var(--accent);">↓</span> CSV</button><button onclick="exportBatch('${b.uuid}','wfdb')" style="display:flex;align-items:center;gap:8px;width:100%;text-align:left;background:none;border:none;color:var(--text);font-family:inherit;font-size:0.75rem;padding:7px 10px;cursor:pointer;border-radius:4px;" onmouseover="this.style.background='rgba(0,212,255,0.1)'" onmouseout="this.style.background='none'"><span style="color:var(--accent);">↓</span> WFDB (ZIP)</button><button onclick="exportBatch('${b.uuid}','edf')" style="display:flex;align-items:center;gap:8px;width:100%;text-align:left;background:none;border:none;color:var(--text);font-family:inherit;font-size:0.75rem;padding:7px 10px;cursor:pointer;border-radius:4px;" onmouseover="this.style.background='rgba(0,212,255,0.1)'" onmouseout="this.style.background='none'"><span style="color:var(--accent);">↓</span> EDF+</button></div></div>${canDelete && !b.is_deleted ? `<button class="btn btn-danger" style="padding:4px 8px;font-size:0.7rem;" onclick="deleteBatch('${b.uuid}')">✕</button>` : ''}${canDelete && b.is_deleted ? `<button class="btn btn-success" style="padding:4px 8px;font-size:0.7rem;" onclick="restoreBatch('${b.uuid}')">↩</button>` : ''}</td></tr>`).join(''):'<tr><td colspan="9" style="text-align:center;color:var(--text-dimmer);padding:24px;">No results</td></tr>';
+      const lim = parseInt(document.getElementById('q-limit').value)||20;
+      const off = parseInt(document.getElementById('q-offset').value)||0;
+      if(batches.length){
+        toast(`Found ${d.count} batches`,'success',2000);
+        updateRecentBatches(batches);
+      }
+    }
+  }catch(e){
+    document.getElementById('query-alert').innerHTML=`<div class="alert alert-error">✗ ${e.message}</div>`;
+    toast(e.message,'error');
+  }finally{btn.innerHTML='⊞ Search';btn.disabled=false;}
+}
+
+let _batchDetailUUID = null;
+async function showBatchDetail(uuid){
+  _batchDetailUUID = uuid;
+  // Show loading state immediately
+  document.getElementById('batch-detail-content').innerHTML=`<div style="color:var(--text-dimmer);padding:8px 0;">Loading...</div>`;
+  document.getElementById('batch-waveform-wrap').style.display='none';
+  document.getElementById('batch-detail').style.display='block';
+  document.getElementById('batch-detail').scrollIntoView({behavior:'smooth'});
+  try{
+    const r=await apiFetch(`/v1/data/${uuid}/metadata`);
+    if(_batchDetailUUID!==uuid)return; // newer click took over
+    const m=await r.json();
+    if(!r.ok){toast(m?.detail?.error||m?.detail||'Batch not found','error');return;}
+    document.getElementById('batch-detail-content').innerHTML=`
+      <div class="grid-2" style="margin-bottom:16px;">
+        <div><div class="form-label">UUID</div><div class="mono" style="font-size:0.8rem;color:var(--text);">${m.uuid||uuid}</div></div>
+        <div><div class="form-label">Signal Type</div><span class="badge badge-${m.signal_type?.toLowerCase()}">${m.signal_type}</span></div>
+        <div><div class="form-label">Patient ID</div><div class="mono">${m.patient_id}</div></div>
+        <div><div class="form-label">Device</div><div class="mono">${m.device_id}</div></div>
+        <div><div class="form-label">Samples</div><div class="mono">${fmtNum(m.sample_count)}</div></div>
+        <div><div class="form-label">Sampling Rate</div><div class="mono">${m.sampling_rate_hz} Hz</div></div>
+      </div>`;
+    const wrapEl=document.getElementById('batch-waveform-wrap');
+    const sampleCount=m.sample_count||0;
+    document.getElementById('batch-detail-content').innerHTML+=`<div id="signal-loading" style="color:var(--text-dimmer);font-size:0.8rem;padding:4px 0;">⏳ Loading signal data...</div>`;
+    const dsParam = sampleCount > 10000 ? `?downsample=${Math.ceil(sampleCount/2000)}` : '';
+    const sr=await apiFetch(`/v1/data/${uuid}/signals${dsParam}`);
+    const ct=sr.headers.get('content-type')||'';
+    document.getElementById('signal-loading')?.remove();
+    if(sr.ok && ct.includes('application/json')){
+      const sd=await sr.json();
+      const signals=sd.signals||[];
+      if(signals.length>0){
+        document.getElementById('waveform-title').textContent=`${m.signal_type} Waveform${dsParam?` (preview — ${fmtNum(sampleCount)} total)`:''}`;
+        document.getElementById('waveform-sub').textContent=`${m.device_id} · Patient ${m.patient_id}`;
+        document.getElementById('wf-samples').textContent=fmtNum(signals.length);
+        document.getElementById('wf-rate').textContent=m.sampling_rate_hz;
+        document.getElementById('wf-duration').textContent=m.sampling_rate_hz?(sampleCount/m.sampling_rate_hz).toFixed(1):'—';
+        wrapEl.style.display='block';
+        drawWaveform('waveformChart',signals,m.signal_type,m.units,false);
+        toast(`Waveform loaded${dsParam?' (preview)':''}  — ${fmtNum(signals.length)} samples`,'success',2000);
+      } else {
+        document.getElementById('batch-detail-content').innerHTML+=`<div class="alert alert-info">⚠ Signal data not found in InfluxDB for this batch.</div>`;
+        wrapEl.style.display='none';
+      }
+    }
+  }catch(e){toast('Failed to load batch: '+e.message,'error');}
+}
+
+function toggleExportMenu(uuid, btn){
+  const menu = document.getElementById('exp-'+uuid);
+  if(!menu) return;
+  const isOpen = menu.style.display === 'block';
+  document.querySelectorAll('[id^="exp-"]').forEach(m=>m.style.display='none');
+  if(isOpen) return;
+  const rect = btn.getBoundingClientRect();
+  menu.style.display = 'block';
+  const menuH = menu.offsetHeight || 120;
+  const spaceAbove = rect.top;
+  const spaceBelow = window.innerHeight - rect.bottom;
+  if(spaceAbove > menuH || spaceAbove > spaceBelow){
+    menu.style.top = (rect.top - menuH - 4) + 'px';
+  } else {
+    menu.style.top = (rect.bottom + 4) + 'px';
+  }
+  menu.style.left = Math.min(rect.left, window.innerWidth - 150) + 'px';
+  const close = (e)=>{ if(!btn.contains(e.target) && !menu.contains(e.target)){ menu.style.display='none'; document.removeEventListener('click',close); } };
+  setTimeout(()=>document.addEventListener('click',close),0);
+}
+
+async function exportBatch(uuid, fmt){
+  document.querySelectorAll('[id^="exp-"]').forEach(m=>m.style.display='none');
+  toast(`Preparing ${fmt.toUpperCase()} export… (may take up to 60s)`,'info',60000);
+  try{
+    const r = await fetch(`/v1/data/signals/${uuid}/export?format=${fmt}`,{headers:{Authorization:'Bearer '+token}});
+    if(!r.ok){ let msg='Export failed'; try{ const d=await r.json(); msg=d?.detail?.message||d?.detail?.error||(typeof d?.detail==='string'?d.detail:null)||`HTTP ${r.status}`; }catch(_){} toast(msg,'error'); return; }
+    const blob = await r.blob();
+    const cd = r.headers.get('Content-Disposition')||'';
+    const match = cd.match(/filename="([^"]+)"/);
+    const filename = match ? match[1] : `export_${uuid.split('-')[0]}.${fmt==='wfdb'?'zip':fmt}`;
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href=url; a.download=filename;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(()=>URL.revokeObjectURL(url), 5000);
+    toast(`${fmt.toUpperCase()} downloaded`,'success');
+  }catch(e){ toast('Export failed: '+e.message,'error'); }
+}
+
+function doQueryCSV(){
+  const params=new URLSearchParams();params.append('format','csv');
+  const patients=document.getElementById('q-patients').value.trim();
+  if(patients)params.append('patient_ids',patients);
+  params.append('limit',document.getElementById('q-limit').value||100);
+  window.open(`${API}/v1/data?${params}`);
+}
+
+function drawWaveform(canvasId,samples,signalType,unit,isCompare){
+  const ctx=document.getElementById(canvasId);if(!ctx)return null;
+  if(canvasId==='waveformChart'&&waveformChart){waveformChart.destroy();waveformChart=null;}
+  if(canvasId==='visChart1'&&visChart1){visChart1.destroy();visChart1=null;}
+  if(canvasId==='visChart2'&&visChart2){visChart2.destroy();visChart2=null;}
+  const maxPts=2000;
+  const ds=samples.length>maxPts?samples.filter((_,i)=>i%Math.ceil(samples.length/maxPts)===0):samples;
+  const color=COLORS[signalType]||'#00d4ff';
+  const chart=new Chart(ctx,{type:'line',data:{labels:ds.map((_,i)=>i),datasets:[{label:`${signalType}${unit?' ('+unit+')':''}`,data:ds,borderColor:color,borderWidth:1.5,pointRadius:0,tension:0.15,fill:false}]},options:{responsive:true,maintainAspectRatio:false,animation:{duration:800},plugins:{legend:{labels:{color:'#7a9ab0',font:{family:"'JetBrains Mono',monospace",size:10}}},tooltip:{mode:'index',intersect:false,backgroundColor:'rgba(10,21,32,0.9)',borderColor:'rgba(26,58,92,0.8)',borderWidth:1,titleColor:'#00d4ff',bodyColor:'#e8f4f8',titleFont:{family:"'JetBrains Mono',monospace"},bodyFont:{family:"'JetBrains Mono',monospace",size:11}}},scales:{x:{display:false,grid:{color:'rgba(26,58,92,0.2)'}},y:{grid:{color:'rgba(26,58,92,0.2)'},ticks:{color:'#7a9ab0',font:{family:"'JetBrains Mono',monospace",size:10}}}}}});
+  if(canvasId==='waveformChart')waveformChart=chart;
+  if(canvasId==='visChart1')visChart1=chart;
+  if(canvasId==='visChart2')visChart2=chart;
+  return chart;
+}
+
+async function doVisualize(){
+  const uuid1=document.getElementById('vis-uuid1').value.trim();
+  const uuid2=document.getElementById('vis-uuid2').value.trim();
+  if(!uuid1){toast('Enter at least one UUID','error');return;}
+  document.getElementById('vis-alert').innerHTML='';
+  document.getElementById('vis-single').style.display='none';
+  document.getElementById('vis-compare').style.display='none';
+  try{
+    const r1=await apiFetch(`/v1/data/${uuid1}`);
+    const d1=await r1.json();
+    if(!r1.ok){toast('Batch 1 not found','error');return;}
+    const m1=d1.metadata||{},s1=d1.signals||[];
+    document.getElementById('vis-title1').textContent=`${m1.signal_type} — Patient ${m1.patient_id}`;
+    document.getElementById('vis-meta1').textContent=`${m1.device_id} · ${fmtNum(s1.length)} samples · ${m1.sampling_rate_hz} Hz`;
+    document.getElementById('vis-samples1').textContent=fmtNum(s1.length);
+    document.getElementById('vis-rate1').textContent=m1.sampling_rate_hz;
+    document.getElementById('vis-single').style.display='block';
+    if(visChart1){visChart1.destroy();visChart1=null;}
+    drawWaveform('visChart1',s1,m1.signal_type,m1.units,false);
+    if(uuid2){
+      const r2=await apiFetch(`/v1/data/${uuid2}`);
+      const d2=await r2.json();
+      if(!r2.ok){toast('Batch 2 not found','warning');return;}
+      const m2=d2.metadata||{},s2=d2.signals||[];
+      document.getElementById('vis-title2').textContent=`${m2.signal_type} — Patient ${m2.patient_id}`;
+      document.getElementById('vis-samples2').textContent=fmtNum(s2.length);
+      document.getElementById('vis-compare').style.display='block';
+      if(visChart2){visChart2.destroy();visChart2=null;}
+      if(visChartOverlay){visChartOverlay.destroy();visChartOverlay=null;}
+      drawWaveform('visChart2',s2,m2.signal_type,m2.units,false);
+      const maxPts=2000;
+      const ds1=s1.length>maxPts?s1.filter((_,i)=>i%Math.ceil(s1.length/maxPts)===0):s1;
+      const ds2=s2.length>maxPts?s2.filter((_,i)=>i%Math.ceil(s2.length/maxPts)===0):s2;
+      const ctx=document.getElementById('visChartOverlay');
+      if(visChartOverlay)visChartOverlay.destroy();
+      visChartOverlay=new Chart(ctx,{type:'line',data:{labels:[...Array(Math.max(ds1.length,ds2.length))].map((_,i)=>i),datasets:[{label:`Batch 1 (${m1.signal_type})`,data:ds1,borderColor:'rgba(0,212,255,0.8)',borderWidth:1.5,pointRadius:0,tension:0.15,fill:false},{label:`Batch 2 (${m2.signal_type})`,data:ds2,borderColor:'rgba(0,255,136,0.8)',borderWidth:1.5,pointRadius:0,tension:0.15,fill:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#7a9ab0',font:{family:"'JetBrains Mono',monospace",size:10}}}},scales:{x:{display:false},y:{grid:{color:'rgba(26,58,92,0.2)'},ticks:{color:'#7a9ab0',font:{family:"'JetBrains Mono',monospace",size:10}}}}}});
+      toast('Comparison loaded','success');
+    }else{toast('Waveform loaded','success');}
+  }catch(e){toast(e.message,'error');}
+}
+
+async function loadFiles(){
+  const myFiles=document.getElementById('my-files-only').checked;
+  const showDeleted=document.getElementById('show-deleted-files')?.checked;
+  const prefix=document.getElementById('file-prefix').value.trim();
+  const params=new URLSearchParams();
+  if(myFiles)params.append('my_files','true');
+  if(prefix)params.append('prefix',prefix);
+  if(showDeleted)params.append('show_deleted','true');
+  try{
+    const r=await apiFetch(`/v1/data/files?${params}`);
+    const d=await r.json();
+    if(!r.ok){toast(d?.detail?.error||d?.detail||'Failed to load files','error');return;}
+    document.getElementById('files-count').textContent=`(${d.count} files)`;
+    const list=document.getElementById('files-list');
+    const canDeleteFile = currentUser?.roles?.includes('global_admin') || currentUser?.roles?.includes('project_admin');
+    list.innerHTML=d.files?.length?d.files.map(f=>`<div class="file-item" style="${f.is_deleted?'opacity:0.5;background:rgba(255,71,87,0.05);':''}"><div class="file-info"><div class="file-icon">${f.filename.endsWith('.cwa')?'📡':'📄'}</div><div><div class="file-name">${f.filename}</div><div class="file-meta">${fmtBytes(f.size_bytes||0)} · ${fmtDate(f.last_modified)}</div></div></div><div class="file-actions">${!f.is_deleted?`<button class="btn btn-secondary" style="padding:6px 12px;font-size:0.75rem;" onclick="downloadFile('${f.filename}')">↓</button>`:''}${canDeleteFile && !f.is_deleted?`<button class="btn btn-danger" style="padding:6px 12px;font-size:0.75rem;" onclick="deleteFile('${f.filename}')">✕</button>`:''}${canDeleteFile && f.is_deleted?`<button class="btn btn-success" style="padding:6px 12px;font-size:0.75rem;" onclick="restoreFile('${f.filename}')">↩</button>`:''}</div></div>`).join(''):'<div style="text-align:center;color:var(--text-dimmer);padding:24px;">No files found</div>';
+  }catch(e){}
+}
+
+async function loadBuckets(){
+  try{
+    const r=await apiFetch('/v1/data/buckets');
+    const d=await r.json();
+    document.getElementById('buckets-list').innerHTML=(d.buckets||[]).map(b=>`<div class="pill ok" style="font-size:0.75rem;padding:6px 12px;"><div class="pill-dot"></div>${b.name}</div>`).join('');
+  }catch(e){}
+}
+
+async function downloadFile(filename){
+  try{
+    const r=await apiFetch(`/v1/data/files/${filename}`);
+    if(!r.ok){toast('Download failed','error');return;}
+    const blob=await r.blob();
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');a.href=url;a.download=filename.split('/').pop();document.body.appendChild(a);a.click();document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast('Download started','info',2000);
+  }catch(e){toast('Download failed','error');}
+}
+
+async function deleteFile(filename){
+  if(!confirm(`Delete ${filename}? It will be permanently removed after 24 hours.`))return;
+  try{
+    const r=await apiFetch(`/v1/data/files/${filename}`,{method:'DELETE'});
+    if(r.ok){toast('File soft-deleted. Can be restored within 24h.','success');loadFiles();}
+    else{const d=await r.json();toast(d?.detail?.error||d?.detail||'Delete failed','error');}
+  }catch(e){toast(e.message,'error');}
+}
+
+async function restoreFile(filename){
+  try{
+    const r=await apiFetch(`/v1/data/files/${filename}/restore`,{method:'POST'});
+    if(r.ok){toast('File restored!','success');loadFiles();}
+    else{const d=await r.json();toast(d?.detail?.error||d?.detail||'Restore failed','error');}
+  }catch(e){toast(e.message,'error');}
+}
+
+async function loadUserProjects(){
+  try{
+    const r = await apiFetch('/v1/data/admin/user-project-mappings');
+    const d = await r.json();
+    const myEntries = d.users?.filter(u => u.username === currentUser.username) || [];
+    const myProjects = myEntries.map(u => u.project_id).filter(Boolean);
+    if(myProjects.length > 0){
+      currentUser.project_id = myProjects[0];
+      const sel = document.getElementById('new-project');
+      if(sel){
+        sel.innerHTML = '';
+        myProjects.forEach(p => {
+          const opt = document.createElement('option');
+          opt.value = p;
+          opt.textContent = p.replace('medwear_','').replace(/_/g,' ').replace(/\w/g,l=>l.toUpperCase());
+          sel.appendChild(opt);
+        });
+      }
+    }
+  }catch(e){}
+}
+
+async function loadRetentionSettings(){
+  const sel = document.getElementById('retention-project');
+  if(!sel) return;
+  try{
+    const r = await apiFetch('/v1/data/admin/projects');
+    const d = await r.json();
+    const current = sel.value;
+    sel.innerHTML = '<option value="">Select project…</option>';
+    (d.projects||[]).forEach(p=>{
+      const o = document.createElement('option');
+      o.value = p; o.textContent = p;
+      if(p===current) o.selected = true;
+      sel.appendChild(o);
+    });
+    if(current) loadRetentionForProject();
+  }catch(e){}
+}
+
+async function loadRetentionForProject(){
+  const pid = document.getElementById('retention-project').value;
+  const currentDiv = document.getElementById('retention-current');
+  const label = document.getElementById('retention-current-label');
+  if(!pid){ currentDiv.style.display='none'; return; }
+  try{
+    const r = await apiFetch(`/v1/data/admin/retention?project_id=${encodeURIComponent(pid)}`);
+    const d = await r.json();
+    label.textContent = d.label || 'Never (data kept indefinitely)';
+    const sel = document.getElementById('retention-days');
+    sel.value = d.retention_days ? String(d.retention_days) : '';
+    currentDiv.style.display = 'block';
+  }catch(e){ currentDiv.style.display='none'; }
+}
+
+async function saveRetentionPolicy(){
+  const pid = document.getElementById('retention-project').value;
+  const days = document.getElementById('retention-days').value;
+  const alertEl = document.getElementById('retention-alert');
+  if(!pid){ toast('Select a project first','error'); return; }
+  try{
+    const body = { project_id: pid, retention_days: days ? parseInt(days) : null };
+    const r = await apiFetch('/v1/data/admin/retention',{
+      method:'PUT',
+      body: JSON.stringify(body),
+      headers:{'Content-Type':'application/json'}
+    });
+    const d = await r.json();
+    if(r.ok){
+      toast(`Retention policy saved: ${d.label}`,'success');
+      alertEl.innerHTML=`<div class="alert alert-success" style="margin-top:12px;">✓ Saved: ${d.label}</div>`;
+      loadRetentionForProject();
+    }else{
+      toast(d.detail?.error||'Error','error');
+      alertEl.innerHTML=`<div class="alert alert-error" style="margin-top:12px;">✗ ${d.detail?.error||'Error'}</div>`;
+    }
+  }catch(e){ toast(e.message,'error'); }
+}
+
+async function createProject(){
+  const name = document.getElementById('new-project-name').value.trim();
+  if(!name){toast('Enter a project name','error');return;}
+  try{
+    const r = await apiFetch('/v1/data/admin/projects',{
+      method:'POST',
+      body:JSON.stringify({project_name:name}),
+      headers:{'Content-Type':'application/json'}
+    });
+    const d = await r.json();
+    if(r.ok){
+      toast(`Project ${d.project_id} created!`,'success');
+      document.getElementById('create-project-alert').innerHTML=`<div class="alert alert-success">✓ ${d.message}</div>`;
+      document.getElementById('new-project-name').value='';
+      loadProjectDropdowns();
+      loadProjectList();
+    }else{
+      toast(d.detail?.error||'Error','error');
+      document.getElementById('create-project-alert').innerHTML=`<div class="alert alert-error">✗ ${d.detail?.error||'Error'}</div>`;
+    }
+  }catch(e){toast(e.message,'error');}
+}
+
+async function loadProjectList(){
+  const showDeleted = document.getElementById('show-deleted-projects')?.checked;
+  const container = document.getElementById('project-list');
+  if(!container) return;
+  try{
+    const r = await apiFetch(`/v1/data/admin/projects${showDeleted?'?show_deleted=true':''}`);
+    const d = await r.json();
+    if(showDeleted){
+      const items = d.projects || [];
+      container.innerHTML = items.length ? items.map(p=>`
+        <div class="file-item" style="opacity:0.6;background:rgba(255,71,87,0.05);">
+          <div class="file-info">
+            <div class="file-icon">🗄️</div>
+            <div>
+              <div class="file-name">${p.project_name.replace('medwear_','')}</div>
+              <div class="file-meta">Deleted by ${p.deleted_by} · ${fmtDate(p.deleted_at)}</div>
+            </div>
+          </div>
+          <div class="file-actions">
+            <button class="btn btn-success" style="padding:6px 12px;font-size:0.75rem;" onclick="restoreProject('${p.project_name}')">↩ Restore</button>
+          </div>
+        </div>`).join('') : '<div style="text-align:center;color:var(--text-dimmer);padding:16px;">No deleted projects</div>';
+    } else {
+      const items = d.projects || [];
+      container.innerHTML = items.length ? items.map(p=>`
+        <div class="file-item">
+          <div class="file-info">
+            <div class="file-icon">🗄️</div>
+            <div><div class="file-name">${p.replace('medwear_','')}</div></div>
+          </div>
+          <div class="file-actions">
+            <button class="btn btn-danger" style="padding:6px 12px;font-size:0.75rem;" onclick="deleteProject('${p}')">✕ Delete</button>
+          </div>
+        </div>`).join('') : '<div style="text-align:center;color:var(--text-dimmer);padding:16px;">No projects</div>';
+    }
+  }catch(e){container.innerHTML='<div style="text-align:center;color:var(--text-dimmer);padding:16px;">Error loading projects</div>';}
+}
+
+async function deleteProject(projectName){
+  if(!confirm(`Delete project "${projectName.replace('medwear_','')}"?\n\nAll data will be permanently removed after 24 hours.`)) return;
+  try{
+    const r = await apiFetch(`/v1/data/admin/projects/${projectName}`,{method:'DELETE'});
+    if(r.ok){toast('Project soft-deleted. Can be restored within 24h.','success');loadProjectList();loadProjectDropdowns();}
+    else{const d=await r.json();toast(d.detail?.error||'Delete failed','error');}
+  }catch(e){toast(e.message,'error');}
+}
+
+async function restoreProject(projectName){
+  try{
+    const r = await apiFetch(`/v1/data/admin/projects/${projectName}/restore`,{method:'POST'});
+    if(r.ok){toast('Project restored!','success');loadProjectList();loadProjectDropdowns();}
+    else{const d=await r.json();toast(d.detail?.error||'Restore failed','error');}
+  }catch(e){toast(e.message,'error');}
+}
+
+async function loadDashboardProjectDropdown(){
+  try{
+    const r = await apiFetch('/v1/data/admin/projects');
+    const d = await r.json();
+    const sel = document.getElementById('dashboard-project-select');
+    if(!sel)return;
+    sel.innerHTML = '<option value="">All Projects</option>';
+    (d.projects||[]).forEach(p=>{
+      const opt = document.createElement('option');
+      opt.value = p;
+      opt.textContent = p.replace('medwear_','').replace(/_/g,' ').replace(/\w/g,l=>l.toUpperCase());
+      sel.appendChild(opt);
+    });
+  }catch(e){}
+}
+
+async function loadProjectDropdowns(){
+  try{
+    const r = await apiFetch('/v1/data/admin/projects');
+    const d = await r.json();
+    const projects = d.projects || [];
+    const isGlobal = currentUser?.roles?.includes('global_admin');
+
+    // Upload project dropdown
+    const upSel = document.getElementById('up-project');
+    if(upSel){
+      if(isGlobal){
+        upSel.innerHTML = '';
+        projects.forEach(p=>{
+          const opt = document.createElement('option');
+          opt.value = p;
+          opt.textContent = p.replace('medwear_','').replace(/_/g,' ').replace(/\w/g,l=>l.toUpperCase());
+          upSel.appendChild(opt);
+        });
+      } else {
+        // Non-global: hide dropdown, set own project
+        document.getElementById('up-project-group').style.display='none';
+        upSel.innerHTML = `<option value="${currentUser.project_id||''}">${currentUser.project_id||''}</option>`;
+      }
+    }
+
+    // Activities project dropdown
+    const actSel = document.getElementById('act-project');
+    if(actSel && isGlobal){
+      actSel.innerHTML = '<option value="">All Projects</option>';
+      projects.forEach(p=>{
+        const opt = document.createElement('option');
+        opt.value = p;
+        opt.textContent = p.replace('medwear_','').replace(/_/g,' ').replace(/\w/g,l=>l.toUpperCase());
+        actSel.appendChild(opt);
+      });
+    }
+
+    // Admin create user & filter dropdowns
+    ['new-project','admin-filter-project'].forEach(id=>{
+      const sel = document.getElementById(id);
+      if(!sel)return;
+      const current = sel.value;
+      sel.innerHTML = id==='admin-filter-project' ? '<option value="">All projects</option>' : '';
+      if(isGlobal){
+        projects.forEach(p=>{
+          const opt = document.createElement('option');
+          opt.value = p;
+          opt.textContent = p.replace('medwear_','').replace(/_/g,' ').replace(/\w/g,l=>l.toUpperCase());
+          sel.appendChild(opt);
+        });
+      } else if(currentUser.project_id && id==='new-project'){
+        const opt = document.createElement('option');
+        opt.value = currentUser.project_id;
+        opt.textContent = currentUser.project_id.replace('medwear_','').replace(/_/g,' ').replace(/\w/g,l=>l.toUpperCase());
+        sel.appendChild(opt);
+      }
+      if(current) sel.value = current;
+    });
+  }catch(e){}
+}
+
+function onRoleChange(){
+  const role = document.getElementById('new-role').value;
+  const isGlobal = role === 'global_admin';
+  document.getElementById('new-project-wrap').style.display = isGlobal ? 'none' : '';
+  document.getElementById('global-admin-info').style.display = isGlobal ? 'block' : 'none';
+}
+
+async function createUser(){
+  const username = document.getElementById('new-username').value.trim();
+  const password = document.getElementById('new-password').value;
+  const role = document.getElementById('new-role').value;
+  const isGlobalRole = role === 'global_admin';
+  const project_id = isGlobalRole ? 'global' : document.getElementById('new-project').value;
+  if(!username||!password){toast('Fill all fields','error');return;}
+  document.getElementById('create-user-alert').innerHTML='<div class="alert alert-info">⏳ Creating user...</div>';
+  try{
+    const r = await apiFetch('/v1/data/admin/users',{method:'POST',body:JSON.stringify({username,password,project_id,role}),headers:{'Content-Type':'application/json'}});
+    const d = await r.json();
+    if(r.ok){
+      toast(`User ${username} created!`,'success');
+      const loc = isGlobalRole ? 'as Global Admin' : `in <b>${project_id}</b>`;
+      document.getElementById('create-user-alert').innerHTML=`<div class="alert alert-success">✓ User <b>${username}</b> created ${loc}. Temporary password must be changed on first login.</div>`;
+      document.getElementById('new-username').value='';
+      document.getElementById('new-password').value='';
+    }else{
+      toast(d.detail?.detail||d.detail?.error||'Error','error');
+      document.getElementById('create-user-alert').innerHTML=`<div class="alert alert-error">✗ ${d.detail?.detail||d.detail?.error||'Error'}</div>`;
+    }
+  }catch(e){toast(e.message,'error');}
+}
+
+let _actTab = 'all';
+
+function switchActTab(tab){
+  _actTab = tab;
+  document.getElementById('act-tab-all').className   = tab==='all'   ? 'btn btn-primary'   : 'btn btn-secondary';
+  document.getElementById('act-tab-files').className = tab==='files' ? 'btn btn-primary'   : 'btn btn-secondary';
+  document.getElementById('act-table-all').style.display   = tab==='all'   ? '' : 'none';
+  document.getElementById('act-table-files').style.display = tab==='files' ? '' : 'none';
+  document.getElementById('act-card-title').textContent    = tab==='files' ? 'File Activity Log' : 'Activity Log';
+  loadActivities();
+}
+
+function _fileAction(method, path){
+  if(path.includes('/restore')) return '↩ Restore';
+  if(method==='DELETE')         return '🗑 Delete';
+  if(path.includes('/upload'))  return '📤 Upload';
+  return method;
+}
+
+function _fileName(path){
+  if(path.includes('/files/')) return decodeURIComponent(path.split('/files/')[1]?.split('?')[0] || path);
+  if(path.includes('/upload')){
+    const fn = new URLSearchParams(path.split('?')[1]||'').get('filename');
+    return fn ? decodeURIComponent(fn) : '(raw upload)';
+  }
+  return path;
+}
+
+async function loadActivities(){
+  const isGlobal = currentUser?.roles?.includes('global_admin');
+  const projCol = document.getElementById('act-project-col');
+  const projGroup = document.getElementById('act-project-group');
+  if(projCol) projCol.style.display = isGlobal ? '' : 'none';
+  if(projGroup) projGroup.style.display = isGlobal ? '' : 'none';
+
+  if(isGlobal){
+    const sel = document.getElementById('act-project');
+    if(sel && sel.options.length <= 1){
+      try{
+        const r = await apiFetch('/v1/data/admin/projects');
+        const d = await r.json();
+        (d.projects||[]).forEach(p=>{
+          const o = document.createElement('option');
+          o.value = p; o.textContent = p.replace('medwear_','');
+          sel.appendChild(o);
+        });
+      }catch(e){}
+    }
+  }
+
+  const username = document.getElementById('act-username').value.trim();
+  const project = document.getElementById('act-project')?.value || '';
+  const limit = document.getElementById('act-limit').value || 50;
+
+  let params = `limit=${limit}`;
+  if(username) params += `&username=${encodeURIComponent(username)}`;
+  if(project)  params += `&project_id=${encodeURIComponent(project)}`;
+  if(_actTab === 'files') params += `&path_filter=files`;
+
+  try{
+    const r = await apiFetch(`/v1/data/admin/activities?${params}`);
+    const d = await r.json();
+    const methodColor = {GET:'var(--accent)',POST:'#2ecc71',DELETE:'var(--danger)',PUT:'#f39c12'};
+
+    if(_actTab === 'files'){
+      const fileProjectCol = document.getElementById('act-file-project-col');
+      if(fileProjectCol) fileProjectCol.style.display = isGlobal ? '' : 'none';
+      const cols = isGlobal ? 6 : 5;
+      const tbody = document.getElementById('act-file-tbody');
+      tbody.innerHTML = d.activities?.length ? d.activities.map(a=>{
+        const action = _fileAction(a.method, a.path);
+        const filename = _fileName(a.path);
+        const actionColor = a.path.includes('/restore') ? '#2ecc71' : a.method==='DELETE' ? 'var(--danger)' : 'var(--accent)';
+        return `<tr>
+          <td class="mono" style="font-size:0.75rem;">${fmtDate(a.timestamp)}</td>
+          <td style="font-size:0.82rem;font-weight:500;">${a.username}</td>
+          <td><span style="font-size:0.78rem;font-weight:600;color:${actionColor};">${action}</span></td>
+          <td class="mono" style="font-size:0.72rem;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${filename}">${filename}</td>
+          <td><span style="font-size:0.75rem;font-family:'JetBrains Mono',monospace;color:${a.status_code<400?'#2ecc71':'var(--danger)'};">${a.status_code}</span></td>
+          ${isGlobal ? `<td style="font-size:0.72rem;color:var(--text-dimmer);">${a.project_id?.replace('medwear_','')}</td>` : ''}
+        </tr>`;
+      }).join('') : `<tr><td colspan="${cols}" style="text-align:center;color:var(--text-dimmer);padding:24px;">No file activities found</td></tr>`;
+    } else {
+      const projCol = document.getElementById('act-project-col');
+      if(projCol) projCol.style.display = isGlobal ? '' : 'none';
+      const cols = isGlobal ? 7 : 6;
+      const tbody = document.getElementById('act-tbody');
+      tbody.innerHTML = d.activities?.length ? d.activities.map(a=>`
+        <tr>
+          <td class="mono" style="font-size:0.75rem;">${fmtDate(a.timestamp)}</td>
+          <td style="font-size:0.82rem;font-weight:500;">${a.username}</td>
+          <td><span style="font-family:'JetBrains Mono',monospace;font-size:0.72rem;font-weight:700;color:${methodColor[a.method]||'var(--text-dim)'};">${a.method}</span></td>
+          <td class="mono" style="font-size:0.72rem;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${a.path}">${a.path}</td>
+          <td><span style="font-size:0.75rem;font-family:'JetBrains Mono',monospace;color:${a.status_code<400?'#2ecc71':'var(--danger)'};">${a.status_code}</span></td>
+          <td class="mono" style="font-size:0.72rem;">${a.duration_ms}ms</td>
+          ${isGlobal ? `<td style="font-size:0.72rem;color:var(--text-dimmer);">${a.project_id?.replace('medwear_','')}</td>` : ''}
+        </tr>`).join('') : `<tr><td colspan="${cols}" style="text-align:center;color:var(--text-dimmer);padding:24px;">No activities found</td></tr>`;
+    }
+  }catch(e){toast(e.message,'error');}
+}
+
+async function deleteBatch(uuid){
+  if(!confirm(`Delete batch ${uuid.substring(0,8)}...? You can restore it within 24 hours.`))return;
+  try{
+    const r = await apiFetch(`/v1/data/${uuid}`,{method:'DELETE'});
+    if(r.ok){
+      toast('Batch deleted. You can restore it within 24h.','success');
+      doQuery();
+    } else {
+      const d = await r.json();
+      toast(d.detail?.error||'Delete failed','error');
+    }
+  }catch(e){toast(e.message,'error');}
+}
+
+async function restoreBatch(uuid){
+  try{
+    const r = await apiFetch(`/v1/data/${uuid}/restore`,{method:'POST'});
+    if(r.ok){
+      toast('Batch restored!','success');
+      doQueryWithDeleted();
+    } else {
+      const d = await r.json();
+      toast(d.detail?.error||'Restore failed','error');
+    }
+  }catch(e){toast(e.message,'error');}
+}
+
+async function doQueryWithDeleted(){
+  // Restore sonrası: show-deleted checkbox'ını kaldır, normal liste göster (restored batch görünsün)
+  const showDeletedCheckbox = document.getElementById('q-show-deleted');
+  if(showDeletedCheckbox) showDeletedCheckbox.checked = false;
+  await doQuery();
+}
+
+async function assignProject(){
+  const u=document.getElementById('admin-username').value.trim();
+  const p=document.getElementById('admin-project').value.trim();
+  if(!u||!p){toast('Fill both fields','error');return;}
+  try{
+    const r=await apiFetch('/v1/data/admin/add-user-to-project',{method:'POST',body:JSON.stringify({username:u,project_id:p}),headers:{'Content-Type':'application/json'}});
+    const d=await r.json();
+    if(r.ok){toast(`${u} assigned to ${p}`,'success');loadMappings();}else toast(d.detail?.error||'Error','error');
+  }catch(e){toast(e.message,'error');}
+}
+
+async function removeProject(){
+  const u=document.getElementById('admin-username').value.trim();
+  const p=document.getElementById('admin-project').value.trim();
+  if(!u||!p){toast('Fill both fields','error');return;}
+  try{
+    const r=await apiFetch(`/v1/data/admin/remove-user-from-project?username=${u}&project_id=${p}`,{method:'DELETE'});
+    if(r.ok){toast(`${u} removed from ${p}`,'success');loadMappings();}else toast('Not found','error');
+  }catch(e){toast(e.message,'error');}
+}
+
+async function loadMappings(){
+  try{
+    const showDeleted = document.getElementById('show-deleted-users')?.checked;
+    const url = showDeleted ? '/v1/data/admin/users?show_deleted=true' : '/v1/data/admin/users';
+    const r = await apiFetch(url);
+    const d = await r.json();
+    const users = d.users || [];
+    const isGlobal = currentUser?.roles?.includes('global_admin');
+    const isProjectAdmin = currentUser?.roles?.includes('project_admin');
+    if(!users.length){
+      document.getElementById('mappings-list').innerHTML=`<div style="color:var(--text-dimmer);padding:16px;">${showDeleted?'No deleted users found':'No users found'}</div>`;
+      return;
+    }
+    const renderUser = (u) => {
+      const adminRoles = ['project_admin','global_admin'];
+      const canDelete = !showDeleted && (isGlobal || (isProjectAdmin && !adminRoles.includes(u.role)));
+      const canRestore = showDeleted && (isGlobal || isProjectAdmin);
+      const deletedInfo = showDeleted ? `<div style="font-size:0.7rem;color:#e74c3c;margin-top:2px;">deleted ${fmtDate(u.deleted_at)} by ${u.deleted_by||'?'}</div>` : '';
+      return `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(26,58,92,0.3);${showDeleted?'opacity:0.7;background:rgba(255,71,87,0.04);':''}">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,${showDeleted?'#e74c3c,#c0392b':'var(--accent),var(--accent2)'});display:flex;align-items:center;justify-content:center;font-size:0.65rem;font-weight:700;color:var(--bg);">${u.username[0].toUpperCase()}</div>
+          <div><div style="font-size:0.85rem;font-weight:500;">${u.username}</div>
+          <span class="badge badge-ecg" style="font-size:0.6rem;">${u.role}</span>${deletedInfo}</div>
+        </div>
+        <div style="display:flex;gap:6px;">
+          ${canDelete?`<button class="btn btn-danger" style="padding:4px 10px;font-size:0.7rem;" onclick="deleteUser('${u.username}','${u.project_id}')">✕ Remove</button>`:''}
+          ${canRestore?`<button class="btn btn-success" style="padding:4px 10px;font-size:0.7rem;" onclick="restoreUser('${u.username}','${u.project_id}')">↩ Restore</button>`:''}
+        </div>
+      </div>`;
+    };
+    const globalAdmins = users.filter(u=>u.role==='global_admin'||u.project_id==='global');
+    const projectUsers = users.filter(u=>u.role!=='global_admin'&&u.project_id!=='global');
+    const projects = [...new Set(projectUsers.map(u=>u.project_id))].sort();
+    let html = '';
+    if(globalAdmins.length){
+      html += `<div style="margin-bottom:20px;">
+        <div style="font-family:'Syne',sans-serif;font-size:0.85rem;font-weight:700;color:#ffa502;margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid var(--border);">⭐ Global Admins</div>
+        ${globalAdmins.map(renderUser).join('')}
+      </div>`;
+    }
+    html += projects.map(proj => {
+      const pu = projectUsers.filter(u=>u.project_id===proj);
+      return `<div style="margin-bottom:20px;">
+        <div style="font-family:'Syne',sans-serif;font-size:0.85rem;font-weight:700;color:var(--accent);margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid var(--border);">${proj}</div>
+        ${pu.map(renderUser).join('')}
+      </div>`;
+    }).join('');
+    document.getElementById('mappings-list').innerHTML = html;
+  }catch(e){}
+}
+
+async function deleteUser(username, project_id){
+  if(!confirm(`Soft-delete ${username} from ${project_id}?\nThey will be permanently removed after 24 hours.`))return;
+  try{
+    const r = await apiFetch(`/v1/data/admin/user-project?username=${username}&project_id=${project_id}`,{method:'DELETE'});
+    const d = await r.json();
+    if(r.ok){toast(`${username} soft-deleted — will be removed permanently after 24h`,'success');loadMappings();}
+    else toast(d?.detail?.detail||d?.detail||'Failed to remove','error');
+  }catch(e){toast(e.message,'error');}
+}
+
+async function restoreUser(username, project_id){
+  try{
+    const r = await apiFetch(`/v1/data/admin/users/${username}/restore?project_id=${project_id}`,{method:'POST'});
+    const d = await r.json();
+    if(r.ok){toast(`${username} restored to ${project_id}`,'success');loadMappings();}
+    else toast(d?.detail?.detail||d?.detail||'Failed to restore','error');
+  }catch(e){toast(e.message,'error');}
+}
+
+async function checkHealth(){
+  try{
+    const r=await fetch(`${API}/v1/health`);
+    const d=await r.json();
+    document.getElementById('health-response').textContent=JSON.stringify(d,null,2);
+    Object.entries(d.services||{}).forEach(([svc,info])=>{
+      const el=document.getElementById(`h-${svc}`);
+      const st=typeof info==='object'?info.status:info;
+      const ms=typeof info==='object'&&info.latency_ms!=null?` · ${info.latency_ms}ms`:'';
+      if(el){el.className=`health-item ${st==='ok'?'ok':'err'}`;el.querySelector('.health-status').textContent=st==='ok'?`Online${ms}`:st;}
+    });
+    const allOk=Object.values(d.services||{}).every(s=>(typeof s==='object'?s.status:s)==='ok');
+    document.getElementById('status-pills').innerHTML=allOk?'<div class="pill ok"><div class="pill-dot"></div>All Systems OK</div>':'<div class="pill warn"><div class="pill-dot"></div>Degraded</div>';
+  }catch(e){document.getElementById('status-pills').innerHTML='<div class="pill err"><div class="pill-dot"></div>API Offline</div>';}
+}
+
+function switchTab(page,name,el){
+  document.querySelectorAll(`#page-${page} .tab`).forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll(`#page-${page} .tab-panel`).forEach(p=>p.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById(`${page}-tab-${name}`).classList.add('active');
+  if(page==='admin' && name==='mappings') loadMappings();
+  if(page==='admin' && name==='create') loadProjectDropdowns();
+  if(page==='upload' && name==='raw'){initRawProjectSelector();resetRawForm();}
+}
+
+function resetRawForm(){
+  document.getElementById('raw-filename').value='';
+  document.getElementById('raw-content').value='';
+  document.getElementById('file-input').value='';
+  const alert=document.getElementById('raw-alert');if(alert)alert.innerHTML='';
+  const resp=document.getElementById('raw-response');if(resp){resp.style.display='none';resp.textContent='';}
+}
+
+async function initRawProjectSelector(){
+  const isGlobal=currentUser?.roles?.includes('global_admin');
+  const grp=document.getElementById('raw-project-group');
+  if(!grp)return;
+  grp.style.display=isGlobal?'':'none';
+  if(!isGlobal)return;
+  const sel=document.getElementById('raw-project-id');
+  if(sel.options.length>1)return;
+  try{
+    const r=await apiFetch('/v1/data/admin/projects');
+    const d=await r.json();
+    (d.projects||[]).forEach(p=>{const o=document.createElement('option');o.value=p;o.textContent=p.replace('medwear_','');sel.appendChild(o);});
+  }catch(e){}
+}
+
+async function apiFetch(path,opts={}){return fetch(`${API}${path}`,{...opts,headers:{'Authorization':`Bearer ${token}`,...(opts.headers||{})}});}
+function showResponse(id,data){const el=document.getElementById(id);el.style.display='block';el.textContent=JSON.stringify(data,null,2);}
+function fmtNum(n){if(!n&&n!==0)return'—';return Number(n).toLocaleString();}
+function fmtDate(s){if(!s)return'—';const d=new Date(s.endsWith('Z')||s.includes('+')?s:s+'Z');return d.toLocaleString('en-GB',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});}
+function fmtBytes(b){if(!b)return'0 B';if(b<1024)return b+' B';if(b<1048576)return(b/1024).toFixed(1)+' KB';return(b/1048576).toFixed(1)+' MB';}
+
+let timelineChart = null;
+
+async function loadTimeline(){
+  const patientId = document.getElementById('tl-patient').value.trim();
+  if(!patientId){toast('Enter a patient ID','error');return;}
+  document.getElementById('tl-alert').innerHTML='';
+  document.getElementById('tl-content').style.display='none';
+  try{
+    const r = await apiFetch(`/v1/data?patient_ids=${patientId}&limit=100000&metadata_only=true`);
+    const d = await r.json();
+    if(!r.ok){
+      const msg=d?.detail?.error||d?.detail||'Query failed';
+      document.getElementById('tl-alert').innerHTML=`<div class="alert alert-error">✗ ${msg}</div>`;
+      toast(String(msg),'error');
+      return;
+    }
+    const batches = d.batches||[];
+    if(!batches.length){toast('No data for this patient','warning');return;}
+
+    const totalSamples = batches.reduce((s,b)=>s+b.sample_count,0);
+    const signalTypes = [...new Set(batches.map(b=>b.signal_type))];
+    document.getElementById('tl-stat-batches').textContent = batches.length;
+    document.getElementById('tl-stat-samples').textContent = fmtNum(totalSamples);
+    document.getElementById('tl-stat-types').textContent = signalTypes.length;
+
+    const sorted = [...batches].sort((a,b)=>new Date(a.created_at)-new Date(b.created_at));
+
+    // Show max 200 most recent batches in chart to avoid browser freeze
+    const chartBatches = sorted.slice(-200);
+    const labels = chartBatches.map(b=>fmtDate(b.start_timestamp||b.created_at));
+    const datasets = signalTypes.map(type=>({
+      label:type,
+      data:chartBatches.map(b=>b.signal_type===type?b.sample_count:null),
+      backgroundColor:COLORS[type]+'80',
+      borderColor:COLORS[type],
+      borderWidth:1,
+      borderRadius:4,
+    }));
+
+    const ctx = document.getElementById('timelineChart');
+    if(timelineChart)timelineChart.destroy();
+    timelineChart = new Chart(ctx,{
+      type:'bar',
+      data:{labels,datasets},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#7a9ab0',font:{family:"'JetBrains Mono',monospace",size:10}}}},scales:{x:{stacked:true,ticks:{color:'#7a9ab0',font:{size:9},maxRotation:45},grid:{color:'rgba(26,58,92,0.2)'}},y:{stacked:true,ticks:{color:'#7a9ab0',font:{family:"'JetBrains Mono',monospace",size:10}},grid:{color:'rgba(26,58,92,0.2)'}}}}
+    });
+
+    // Show only 100 most recent events to avoid DOM freeze
+    const recent = [...sorted].reverse().slice(0,100);
+    const events = document.getElementById('tl-events');
+    events.innerHTML = (batches.length>100?`<div style="padding:8px 0;color:var(--text-dimmer);font-size:0.75rem;">Showing 100 most recent of ${batches.length} batches</div>`:'') + recent.map(b=>`
+      <div style="display:flex;align-items:center;gap:16px;padding:12px 0;border-bottom:1px solid rgba(26,58,92,0.4);">
+        <div style="width:10px;height:10px;border-radius:50%;background:${COLORS[b.signal_type]||'#888'};flex-shrink:0;"></div>
+        <div style="flex:1;">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span class="badge badge-${b.signal_type?.toLowerCase()}">${b.signal_type}</span>
+            <span style="font-size:0.8rem;font-weight:500;">${fmtNum(b.sample_count)} samples @ ${b.sampling_rate_hz} Hz</span>
+          </div>
+          <div style="font-size:0.7rem;color:var(--text-dimmer);font-family:'JetBrains Mono',monospace;margin-top:2px;">${b.device_id} · ${fmtDate(b.created_at)}</div>
+        </div>
+        <button class="btn btn-secondary" style="padding:4px 10px;font-size:0.75rem;" onclick="showPage('visualize',null);document.getElementById('vis-uuid1').value='${b.uuid}';setTimeout(doVisualize,100);">〜</button>
+      </div>`).join('');
+
+    document.getElementById('tl-content').style.display='block';
+    document.getElementById('bulk-export-btn').disabled=false;
+    const _canGrafana=currentUser?.roles?.includes('global_admin')||currentUser?.roles?.includes('project_admin');
+    if(_canGrafana) document.getElementById('grafana-btn').style.display='inline-flex';
+    toast(`Loaded ${batches.length} batches for patient ${patientId}`,'success');
+  }catch(e){toast(e.message,'error');}
+}
+
+function toggleBulkMenu(btn){
+  const menu=document.getElementById('bulk-export-menu');
+  const isOpen=menu.style.display==='block';
+  menu.style.display=isOpen?'none':'block';
+  if(!isOpen){
+    const rect=btn.getBoundingClientRect();
+    const menuH=menu.offsetHeight||130;
+    menu.style.top=(rect.top-menuH-4)+'px';
+    menu.style.left=Math.min(rect.left,window.innerWidth-150)+'px';
+    const close=(e)=>{if(!btn.contains(e.target)&&!menu.contains(e.target)){menu.style.display='none';document.removeEventListener('click',close);}};
+    setTimeout(()=>document.addEventListener('click',close),0);
+  }
+}
+
+async function bulkExport(fmt){
+  document.getElementById('bulk-export-menu').style.display='none';
+  const patientId=document.getElementById('tl-patient').value.trim();
+  if(!patientId)return;
+  toast(`Preparing ${fmt.toUpperCase()} bulk export…`,'info',3000);
+  try{
+    const r=await fetch(`/v1/data/patients/${patientId}/export?format=${fmt}`,{headers:{Authorization:'Bearer '+token}});
+    if(!r.ok){let msg='Export failed';try{const d=await r.json();msg=d?.detail?.message||d?.detail?.error||msg;}catch(_){}toast(msg,'error');return;}
+    const blob=await r.blob();
+    const cd=r.headers.get('Content-Disposition')||'';
+    const match=cd.match(/filename="([^"]+)"/);
+    const filename=match?match[1]:`patient_${patientId}_${fmt}.zip`;
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');a.href=url;a.download=filename;a.click();
+    URL.revokeObjectURL(url);
+    toast(`Downloaded ${filename}`,'success');
+  }catch(e){toast('Bulk export failed: '+e.message,'error');}
+}
+
+function openGrafana(){
+  const patientId=document.getElementById('tl-patient').value.trim();
+  const uid='c8bd85c0-4486-4e6d-b40d-eeed9b53462d';
+  const isGlobal=currentUser?.roles?.includes('global_admin');
+  const projectId=currentUser?.project_id||'';
+  let dsParam='';
+  if(!isGlobal && projectId){
+    const projName=projectId.replace('medwear_','');
+    dsParam=`&var-datasource=PostgreSQL - ${projName.charAt(0).toUpperCase()+projName.slice(1)}`;
+  }
+  const url=`http://localhost:3001/d/${uid}/med-api-overview?var-patient_id=${patientId}&from=now-7d&to=now${dsParam}`;
+  window.open(url,'_blank');
+}
+
+function dragOver(e){
+  e.preventDefault();
+  document.getElementById('drop-zone').style.borderColor='var(--accent)';
+  document.getElementById('drop-zone').style.background='rgba(0,212,255,0.05)';
+}
+function dragLeave(e){
+  document.getElementById('drop-zone').style.borderColor='var(--border)';
+  document.getElementById('drop-zone').style.background='';
+}
+function dropFile(e){
+  e.preventDefault();
+  dragLeave(e);
+  const file=e.dataTransfer.files[0];
+  if(file)readFile(file);
+}
+function fileSelected(e){
+  const file=e.target.files[0];
+  if(file)readFile(file);
+}
+function readFile(file){
+  document.getElementById('raw-filename').value=file.name;
+  const reader=new FileReader();
+  reader.onload=e=>{document.getElementById('raw-content').value=e.target.result;toast(`File loaded: ${file.name}`,'info',2000);};
+  reader.readAsText(file);
+}
+
+function updateRecentBatches(batches){
+  const list = document.getElementById('recent-batches-list');
+  if(!list)return;
+  list.innerHTML = batches.slice(0,10).map(b=>`
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(26,58,92,0.3);cursor:pointer;" onclick="document.getElementById('vis-uuid1').value='${b.uuid}';" title="Click to use in visualizer">
+      <div>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <span class="badge badge-${b.signal_type?.toLowerCase()}">${b.signal_type}</span>
+          <span style="font-size:0.75rem;color:var(--text-dim);">P-${b.patient_id}</span>
+        </div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:0.65rem;color:var(--text-dimmer);margin-top:2px;">${b.uuid.split('-')[0]}...</div>
+      </div>
+      <div style="font-size:0.65rem;color:var(--text-dimmer);font-family:'JetBrains Mono',monospace;">${fmtNum(b.sample_count)}</div>
+    </div>`).join('');
+}
+
+
+function copyUUID(uuid){
+  navigator.clipboard.writeText(uuid);
+  toast('UUID copied!','info',1500);
+}
+
+const now=new Date();now.setSeconds(0,0);
+const earlier=new Date(now-5*60000);
+document.getElementById('up-start').value=earlier.toISOString().slice(0,16);
+document.getElementById('up-end').value=now.toISOString().slice(0,16);
+function toggleTheme(){
+  document.body.classList.toggle('light');
+  const isLight = document.body.classList.contains('light');
+  document.getElementById('theme-btn').textContent = isLight ? '🌙 Dark' : '☀️ Light';
+  localStorage.setItem('theme', isLight ? 'light' : 'dark');
+}
+if(localStorage.getItem('theme')==='light'){
+  document.body.classList.add('light');
+  document.getElementById('theme-btn') && (document.getElementById('theme-btn').textContent='🌙 Dark');
+}
+
+document.addEventListener('keydown',e=>{
+  if(e.key==='Enter'&&document.getElementById('login-page').style.display!=='none') doLogin();
+  if((e.ctrlKey||e.metaKey)&&e.key==='k'){
+    e.preventDefault();
+    document.querySelectorAll('.nav-item').forEach(n=>{if(n.textContent.trim().startsWith('⊞'))n.click();});
+    setTimeout(()=>document.getElementById('q-patients')?.focus(),100);
+    toast('Quick search — Ctrl+K','info',1500);
+  }
+});
+</script>
+
+<!-- 2FA Modal — outside #app so it shows during login too -->
+<div id="tfa-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;align-items:center;justify-content:center;">
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:32px;max-width:420px;width:90%;position:relative;">
+    <div style="font-size:1.1rem;font-weight:700;margin-bottom:16px;" id="tfa-modal-title">Setup 2FA</div>
+    <div id="tfa-qr-section" style="display:none;text-align:center;margin-bottom:16px;">
+      <p style="font-size:0.8rem;color:var(--text-dim);margin-bottom:12px;">Scan with Google Authenticator</p>
+      <img id="tfa-qr-img" src="" style="width:200px;height:200px;border-radius:8px;">
+      <p style="font-size:0.72rem;color:var(--text-dimmer);margin-top:8px;">Secret: <span id="tfa-secret" style="font-family:'JetBrains Mono',monospace;"></span></p>
+    </div>
+    <div class="form-group">
+      <label class="form-label" id="tfa-code-label">Enter 6-digit code from authenticator app</label>
+      <input type="text" class="form-input" id="tfa-code-input" maxlength="6" placeholder="000000" style="letter-spacing:0.3em;font-size:1.2rem;text-align:center;">
+    </div>
+    <div id="tfa-modal-alert"></div>
+    <div style="display:flex;gap:8px;margin-top:16px;">
+      <button class="btn btn-success" onclick="submitTFA()" style="flex:1;" id="tfa-submit-btn">Confirm</button>
+      <button class="btn btn-secondary" onclick="closeTFAModal()" style="flex:1;">Cancel</button>
+    </div>
+  </div>
+</div>
+</body>
+</html>

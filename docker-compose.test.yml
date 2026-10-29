@@ -1,0 +1,48 @@
+version: '3.8'
+
+# Lightweight test environment — only what tests need.
+# Usage: docker compose -f docker-compose.test.yml up -d
+#        cd medwear_med_api && pytest tests/test_migrations.py tests/test_integration.py -v
+#        docker compose -f docker-compose.test.yml down -v
+
+services:
+  postgres-test:
+    image: postgres:15-alpine
+    container_name: medwear-postgres-test
+    environment:
+      POSTGRES_USER: test_user
+      POSTGRES_PASSWORD: test_pass
+      POSTGRES_DB: medwear_project1
+    ports:
+      - "5434:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U test_user"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    tmpfs:
+      - /var/lib/postgresql/data   # in-memory — fast, no leftover data
+
+  influxdb-test:
+    image: influxdb:2.7
+    container_name: medwear-influxdb-test
+    environment:
+      DOCKER_INFLUXDB_INIT_MODE: setup
+      DOCKER_INFLUXDB_INIT_USERNAME: admin
+      DOCKER_INFLUXDB_INIT_PASSWORD: testpassword
+      DOCKER_INFLUXDB_INIT_ORG: medwear
+      DOCKER_INFLUXDB_INIT_BUCKET: wearables
+      DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: test-influx-token
+    ports:
+      - "8087:8086"
+    healthcheck:
+      test: ["CMD", "influx", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    tmpfs:
+      - /var/lib/influxdb2
+
+networks:
+  default:
+    name: medwear-test-network

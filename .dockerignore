@@ -1,0 +1,50 @@
+# Ignore files and directories not needed for minimal iActivity system
+
+# Version control
+.git
+.gitignore
+
+# Python cache
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+.venv
+env/
+venv/
+
+# IDE files
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Tests and docs
+tests/
+*.md
+LICENSE
+
+# Data files (use volumes instead)
+data/
+docker/grafana/
+docker/samples/
+
+# Complex compose files
+dmz-docker-compose.yaml
+medwear-docker-compose.yaml
+
+# Documentation
+MEDWEAR_README.md
+LICENSE
+Makefile
+
+# Test outputs
+data/processed/
+*.log

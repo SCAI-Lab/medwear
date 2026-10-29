@@ -1,0 +1,173 @@
+# ROS 2 → MedWear API bridge configuration
+# ============================================================
+# Each project uses DIFFERENT topic names. You must fill in
+# the topic names for your own setup before running the bridge.
+#
+# Step 1 — list all active topics on the recording computer:
+#   ros2 topic list
+#
+# Step 2 — confirm sampling rate for each topic:
+#   ros2 topic hz /your_eeg_topic
+#
+# Step 3 — replace the topic values below with the actual names.
+# The msg_type values are standardized and should not be changed.
+# ============================================================
+
+api:
+  base_url: "http://medwear-nginx/v1"   # inside Docker network
+  # Override with API_BASE_URL env var for local testing: http://localhost/v1
+
+topics:
+  # ── EEG / EDA ────────────────────────────────────────────
+  # No EEG or EDA data source exists anywhere in this project as of
+  # 2026-09-23 (neither Corsano's nor Polar_H10's driver publishes either
+  # signal type) -- left disabled rather than pointed at a placeholder
+  # topic, since a subscription to a topic with no publisher just sits
+  # silently forever rather than erroring, which would be confusing to
+  # debug later. Uncomment and fill in the real topic once/if a source
+  # exists.
+  # - topic: "/FILL_IN_YOUR_EEG_TOPIC"   # ← run: ros2 topic list
+  #   msg_type: "healthcare_msgs/msg/EEG"
+  #   signal_type: "EEG"
+  #   field: "eeg"                # float32[] flattened multi-channel EEG
+  #   quality_field: "quality"    # float32[] 0=poor, 1=excellent
+  #   unit: "uV"
+  #   sampling_rate_hz: 256       # ← verify with: ros2 topic hz <topic>
+  # - topic: "/FILL_IN_YOUR_EDA_TOPIC"   # ← run: ros2 topic list
+  #   msg_type: "healthcare_msgs/msg/EDA"
+  #   signal_type: "EDA"
+  #   field: "eda"                # float32[] = scl + scr combined
+  #   quality_field: "signal_quality"
+  #   unit: "uS"
+  #   sampling_rate_hz: 4         # ← verify with: ros2 topic hz <topic>
+
+  # ── Heart Rate ────────────────────────────────────────────
+  # msg type: healthcare_msgs/msg/biosensing/derived_biosignals/HeartRate.msg
+  # Polar_H10's driver (test_ws/src/ros4healthcare/ros2_hc_drv/polar_ros2/
+  # polar_ros2/submodules/PolarH10.py) publishes this topic directly using
+  # healthcare_msgs/msg/HeartRate -- confirmed field-for-field match
+  # (header, session_id, heart_rate, quality) against the real .msg
+  # definition, 2026-09-23. No bridge changes needed for this one.
+  - topic: "/polar_hr"
+    msg_type: "healthcare_msgs/msg/HeartRate"
+    signal_type: "HR"
+    field: "heart_rate"
+    quality_field: "quality"
+    unit: "bpm"
+    sampling_rate_hz: 1         # ← verify with: ros2 topic hz <topic>
+
+  # Corsano's driver (test_ws/src/ros4healthcare/ros2_hc_drv/corsano_ros/
+  # corsano_ros/corsano_ros_wrapper.py) already publishes /corsano/hr using
+  # the same healthcare_msgs/msg/HeartRate type (sample_size always 1 per
+  # message; each message is a single fresh reading from the watch's PPG
+  # activity plan, not a fixed-rate stream) -- confirmed 2026-09-23. The
+  # backend's sample-count-coherence check only applies at >=50 samples per
+  # batch, so the exact sampling_rate_hz below doesn't need to be precise.
+  - topic: "/corsano/hr"
+    msg_type: "healthcare_msgs/msg/HeartRate"
+    signal_type: "HR"
+    field: "heart_rate"
+    quality_field: "quality"
+    unit: "bpm"
+    sampling_rate_hz: 1
+
+  # ── BioZ (bioimpedance) ───────────────────────────────────
+  # msg type: healthcare_msgs/msg/biosensing/raw_biosignals/EDA.msg
+  # IMPORTANT CAVEAT: Corsano's BioZ is a raw bioimpedance signal, not true
+  # electrodermal activity (skin conductance) -- EDA.msg is the wrong
+  # physiological modality for it. It's used here anyway because the
+  # MedWear backend's SignalType enum (medwear_med_api/schemas.py) only
+  # accepts {ECG, BCG, PPG, IMU, EEG, EDA, HR, HRV} -- there is no ICG /
+  # bioimpedance slot, despite healthcare_msgs itself having a dedicated
+  # ICG.msg type. EDA is the closest *bridgeable* option today, confirmed
+  # against the real backend schema 2026-09-23. Corsano's driver doesn't
+  # report a per-sample quality score for this stream (see bioz_callback's
+  # comment in corsano_ros_wrapper.py), so quality_field is left unset.
+  # unit is "raw" (matches the device_info.measuring_unit the driver itself
+  # publishes) rather than "uS", since this isn't skin-conductance data.
+  - topic: "/corsano/bioz"
+    msg_type: "healthcare_msgs/msg/EDA"
+    signal_type: "EDA"
+    field: "eda"
+    unit: "raw"
+    sampling_rate_hz: 25        # BioZParser.SAMPLE_RATE in corsano_ros -- coherence-checked, keep accurate
+
+  # ── Stress / Respiratory Rate: NOT bridgeable today ───────
+  # Corsano's driver also publishes /corsano/stress (healthcare_msgs/msg/
+  # Stress) and /corsano/rr (healthcare_msgs/msg/RespiratoryRate), but the
+  # MedWear backend's SignalType enum has no "Stress" or "RR" member at all
+  # (only HRV exists for heart-related variability, which is a different
+  # quantity than respiratory rate). Uploading either would be rejected
+  # with a 422 at the API layer, not silently dropped -- so these are left
+  # out entirely rather than wired to a mismatched signal_type. Revisit if
+  # the backend's SignalType enum is ever extended.
+
+  # ── ECG ──────────────────────────────────────────────────
+  # msg type: healthcare_msgs/msg/biosensing/raw_biosignals/ECG.msg
+  # Polar_H10's driver also publishes /polar_ecg using
+  # healthcare_msgs/msg/ECG (only if publish_ecg is enabled -- off by
+  # default in polar_ros2.py). Needed medwear_subscriber.py's msg_type_map
+  # to actually include ECG -- see that file's comment, 2026-09-23; the
+  # batch-building code already had ECG-specific handling
+  # (ecg_lead_data/signal_quality), just never wired up to an import.
+  - topic: "/polar_ecg"
+    msg_type: "healthcare_msgs/msg/ECG"
+    signal_type: "ECG"
+    field: "ecg"
+    quality_field: "signal_quality"
+    unit: "mV"                  # PolarH10.py divides raw microvolt ADC counts by 1000
+    sampling_rate_hz: 130       # ECG_SAMPLING_FREQ in PolarH10.py
+    # The driver publishes ONE sample per message, so per-message upload
+    # would be 130 requests/s against the API's 300/minute limit. Buffer
+    # contiguous samples into batches instead: a batch is sent once its
+    # oldest sample has waited batch_window_s (W) at the bridge, and a stamp
+    # gap > gap_threshold_s (link drop/stall) closes it early so gaps stay
+    # visible in MedWear. Override W with --batch-window.
+    batch_window_s: 1
+    gap_threshold_s: 1.0        # normal notification bursts are ~0.6 s apart
+
+  # ── IMU (accelerometers) ──────────────────────────────────
+  # The backend has no multi-axis IMU body (IMU uses GenericBody's flat
+  # signal_data), so "axes" uploads each axis as its own batch, told apart
+  # by schema_id (ros2_imu_x_v1 / _y_ / _z_). Note InfluxDB has no axis tag:
+  # select an axis by joining on batch_uuid with the Postgres batch table.
+  # Polar_H10's driver publishes /polar_acc as geometry_msgs/Vector3Stamped,
+  # one sample per message at ACC_SAMPLING_FREQ (200 Hz, PolarH10.py), in g
+  # (z ~= 0.95 at rest) -- batched for the same reason as ECG.
+  - topic: "/polar_acc"
+    msg_type: "geometry_msgs/msg/Vector3Stamped"
+    signal_type: "IMU"
+    field: "vector"
+    axes: ["x", "y", "z"]
+    unit: "g"
+    sampling_rate_hz: 200
+    batch_window_s: 1
+    gap_threshold_s: 1.0
+  # Corsano's driver publishes /corsano/acceleration as sensor_msgs/Imu with
+  # only the LAST sample of each accelerometer packet (corsano_ros_wrapper.py
+  # acceleration callback), i.e. sporadic single readings (~0.25/s), not a
+  # fixed-rate stream -- so no batching, like /corsano/hr. Unit is left
+  # "raw": the driver passes the watch's values through unconverted (z ~= 6.4
+  # at rest, so neither g nor m/s^2).
+  - topic: "/corsano/acceleration"
+    msg_type: "sensor_msgs/msg/Imu"
+    signal_type: "IMU"
+    field: "linear_acceleration"
+    axes: ["x", "y", "z"]
+    unit: "raw"
+    sampling_rate_hz: 1
+
+  # ── Heart Rate Variability ────────────────────────────────
+  # msg type: healthcare_msgs/msg/biosensing/derived_biosignals/HeartRateVariability.msg
+  # No healthcare_msgs/msg/HeartRateVariability publisher exists either --
+  # Polar_H10 does publish /polar_rr (raw RR intervals), but as a plain
+  # std_msgs/Int32, not this message type, and RR intervals aren't the
+  # same thing as computed HRV metrics. Left disabled for the same reason
+  # as EEG/EDA above.
+  # - topic: "/FILL_IN_YOUR_HRV_TOPIC"   # ← run: ros2 topic list
+  #   msg_type: "healthcare_msgs/msg/HeartRateVariability"
+  #   signal_type: "HRV"
+  #   field: "hrv"
+  #   quality_field: "quality"
+  #   unit: "ms"
+  #   sampling_rate_hz: 1         # ← verify with: ros2 topic hz <topic>

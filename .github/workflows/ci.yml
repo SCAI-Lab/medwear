@@ -1,0 +1,230 @@
+name: CI
+
+on:
+  push:
+    branches: ["main", "dev"]
+  pull_request:
+
+# Cancel in-progress runs for the same branch/PR
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+
+  # ─────────────────────────────────────────────────────────────────
+  # Job 1: lint + security scan  (no services, fast)
+  # ─────────────────────────────────────────────────────────────────
+  lint:
+    name: Lint & Security
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: pip-lint-${{ hashFiles('medwear_med_api/requirements.txt') }}
+          restore-keys: pip-lint-
+
+      - name: Install lint tools
+        run: pip install flake8 pip-audit
+
+      - name: flake8
+        working-directory: medwear_med_api
+        run: |
+          flake8 medwear_med_api/ \
+            --max-line-length=120 \
+            --exclude=venv,__pycache__,alembic \
+            --count --statistics
+
+      - name: pip-audit (dependency vulnerability scan)
+        working-directory: medwear_med_api
+        run: pip-audit -r requirements.txt --skip-editable || true
+        # `|| true` so a new advisory doesn't block CI — remove once addressed
+
+  # ─────────────────────────────────────────────────────────────────
+  # Job 2: unit tests  (no services, < 30 s)
+  # ─────────────────────────────────────────────────────────────────
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: pip-${{ hashFiles('medwear_med_api/requirements.txt') }}
+          restore-keys: pip-
+
+      - name: Install dependencies
+        working-directory: medwear_med_api
+        run: pip install -r requirements.txt -e .
+
+      - name: Run unit + property tests with coverage
+        working-directory: medwear_med_api
+        env:
+          PYTHONPATH: .
+          INFLUX_TOKEN: test-influx-token
+          KEYCLOAK_URL: http://localhost:8080
+          KEYCLOAK_REALM: medwear
+          KEYCLOAK_CLIENT_ID: med-api
+          KEYCLOAK_CLIENT_SECRET: test-secret
+          KEYCLOAK_ADMIN: admin
+          KEYCLOAK_ADMIN_PASSWORD: admin-pass
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: test_pass
+          MINIO_API_ACCESS_KEY: test-access
+          MINIO_API_SECRET_KEY: test-secret
+        run: |
+          pytest tests/test_unit.py tests/test_property.py -v --tb=short \
+            --cov=medwear_med_api \
+            --cov-report=xml:coverage.xml \
+            --cov-report=term-missing \
+            --cov-fail-under=25 \
+            --junit-xml=unit-test-results.xml
+
+      - name: Upload unit test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-test-results
+          path: medwear_med_api/unit-test-results.xml
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: medwear_med_api/coverage.xml
+
+  # ─────────────────────────────────────────────────────────────────
+  # Job 3: integration tests  (needs postgres + influxdb)
+  # ─────────────────────────────────────────────────────────────────
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    needs: unit-tests
+
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: test_pass
+          POSTGRES_DB: medwear_project1
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+
+      influxdb:
+        image: influxdb:2.7
+        env:
+          DOCKER_INFLUXDB_INIT_MODE: setup
+          DOCKER_INFLUXDB_INIT_USERNAME: admin
+          DOCKER_INFLUXDB_INIT_PASSWORD: testpassword123
+          DOCKER_INFLUXDB_INIT_ORG: medwear
+          DOCKER_INFLUXDB_INIT_BUCKET: wearables
+          DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: test-influx-token
+        ports:
+          - 8086:8086
+        options: >-
+          --health-cmd "influx ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      POSTGRES_HOST: localhost
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: ${{ secrets.TEST_POSTGRES_USER || 'test_user' }}
+      POSTGRES_PASSWORD: ${{ secrets.TEST_POSTGRES_PASSWORD || 'test_pass' }}
+      POSTGRES_DB: ${{ secrets.TEST_POSTGRES_DB || 'medwear_project1' }}
+      INFLUX_TOKEN: ${{ secrets.TEST_INFLUX_TOKEN || 'test-influx-token' }}
+      INFLUX_URL: http://localhost:8086
+      INFLUX_ORG: ${{ secrets.TEST_INFLUX_ORG || 'medwear' }}
+      INFLUX_BUCKET: ${{ secrets.TEST_INFLUX_BUCKET || 'wearables' }}
+      KEYCLOAK_URL: http://localhost:8080
+      KEYCLOAK_REALM: ${{ secrets.TEST_KEYCLOAK_REALM || 'medwear' }}
+      KEYCLOAK_CLIENT_ID: ${{ secrets.TEST_KEYCLOAK_CLIENT_ID || 'med-api' }}
+      KEYCLOAK_CLIENT_SECRET: ${{ secrets.TEST_KEYCLOAK_CLIENT_SECRET || 'test-secret' }}
+      KEYCLOAK_ADMIN: ${{ secrets.TEST_KEYCLOAK_ADMIN || 'admin' }}
+      KEYCLOAK_ADMIN_PASSWORD: ${{ secrets.TEST_KEYCLOAK_ADMIN_PASSWORD || 'admin-pass' }}
+      MINIO_ENDPOINT: localhost:9000
+      MINIO_API_ACCESS_KEY: ${{ secrets.TEST_MINIO_ACCESS_KEY || 'test-access' }}
+      MINIO_API_SECRET_KEY: ${{ secrets.TEST_MINIO_SECRET_KEY || 'test-secret' }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: pip-${{ hashFiles('medwear_med_api/requirements.txt') }}
+          restore-keys: pip-
+
+      - name: Install dependencies
+        working-directory: medwear_med_api
+        run: pip install -r requirements.txt -e .
+
+      - name: Run integration + migration tests
+        working-directory: medwear_med_api
+        env:
+          PYTHONPATH: .
+        run: |
+          pytest tests/test_migrations.py tests/test_integration.py -v \
+            --tb=short --junit-xml=integration-test-results.xml \
+            -k "not TestInfluxSanitisationLive"
+
+      - name: Upload integration test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-test-results
+          path: medwear_med_api/integration-test-results.xml
+
+  # ─────────────────────────────────────────────────────────────────
+  # Job 4: Docker image build check  (no push — just verify it builds)
+  # ─────────────────────────────────────────────────────────────────
+  docker-build:
+    name: Docker Build Check
+    runs-on: ubuntu-latest
+    needs: [lint, unit-tests]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build API image (no push)
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: docker/medwear-api.Dockerfile
+          push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          tags: medwear-api:ci-${{ github.sha }}

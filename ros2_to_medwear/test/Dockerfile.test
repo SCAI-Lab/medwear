@@ -1,0 +1,9 @@
+FROM medwear-ros2-to-medwear:latest
+
+COPY test/mock_api.py    /test/mock_api.py
+COPY test/test_config.yaml /test/test_config.yaml
+COPY test/run_test.sh    /test/run_test.sh
+
+RUN chmod +x /test/run_test.sh
+
+CMD ["/bin/bash", "/test/run_test.sh"]

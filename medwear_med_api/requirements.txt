@@ -1,0 +1,63 @@
+# MedWear API — Python dependencies
+# Install: pip install -r requirements.txt
+
+# Testing
+pytest
+pytest-asyncio
+pytest-mock
+pytest-cov
+hypothesis
+
+# Web framework
+fastapi
+uvicorn[standard]
+
+# Authentication
+python-jose[cryptography]
+httpx
+
+# Database
+sqlalchemy[asyncio]
+sqlmodel
+asyncpg
+greenlet
+alembic
+psycopg2-binary
+
+# Object storage
+minio
+
+# Rate limiting
+slowapi
+
+# 2FA (TOTP)
+pyotp
+qrcode[pil]
+
+# Structured logging
+python-json-logger
+
+# Observability
+prometheus-fastapi-instrumentator>=0.22.0
+prometheus-client
+opentelemetry-api
+opentelemetry-sdk
+opentelemetry-instrumentation-fastapi
+opentelemetry-instrumentation-sqlalchemy
+opentelemetry-exporter-otlp-proto-grpc
+
+# Data conversion and upload scripts
+requests
+urllib3
+
+# Research data export (WFDB / EDF+ formats)
+wfdb
+pyEDFlib
+
+# parselib (sensor data parsing) dependencies
+pandas
+numpy
+scipy
+python-dateutil
+tqdm
+backports.zoneinfo; python_version < "3.9"

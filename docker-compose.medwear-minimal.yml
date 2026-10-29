@@ -1,0 +1,250 @@
+version: '3.8'
+
+services:
+  minio:
+    image: minio/minio:latest
+    container_name: medwear-minio
+    restart: unless-stopped
+    env_file:
+      - .env.medwear
+    ports:
+      - "9000:9000"  
+      - "9001:9001"  
+    volumes:
+      - minio_data:/data
+    command: server /data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+    networks:
+      - medwear-network
+
+  minio-setup:
+    image: minio/mc:latest
+    container_name: medwear-minio-setup
+    env_file:
+      - .env.medwear
+    depends_on:
+      - minio
+    entrypoint: >
+      /bin/sh -c "
+      sleep 5;
+      mc alias set myminio http://minio:9000 $$MINIO_ROOT_USER $$MINIO_ROOT_PASSWORD;
+      mc mb myminio/medwear-lakehouse --ignore-existing;
+      mc mb myminio/medwear-bronze --ignore-existing;
+      mc mb myminio/medwear-silver --ignore-existing;
+      mc mb myminio/medwear-gold --ignore-existing;
+      mc anonymous set none myminio/medwear-bronze;
+      mc anonymous set none myminio/medwear-lakehouse;
+      mc anonymous set none myminio/medwear-silver;
+      mc anonymous set none myminio/medwear-gold;
+      mc admin user add myminio $$MINIO_API_ACCESS_KEY $$MINIO_API_SECRET_KEY || true;
+      printf '{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Action\":[\"s3:GetObject\",\"s3:PutObject\",\"s3:DeleteObject\",\"s3:ListBucket\",\"s3:GetBucketLocation\"],\"Resource\":[\"arn:aws:s3:::medwear-bronze\",\"arn:aws:s3:::medwear-bronze/*\",\"arn:aws:s3:::medwear-lakehouse\",\"arn:aws:s3:::medwear-lakehouse/*\",\"arn:aws:s3:::medwear-silver\",\"arn:aws:s3:::medwear-silver/*\",\"arn:aws:s3:::medwear-gold\",\"arn:aws:s3:::medwear-gold/*\"]}]}' > /tmp/medwear-api-policy.json;
+      mc admin policy create myminio medwear-api-policy /tmp/medwear-api-policy.json || true;
+      mc admin policy attach myminio medwear-api-policy --user $$MINIO_API_ACCESS_KEY || true;
+      echo 'MinIO setup complete: buckets created, anonymous access disabled, service account ready';
+      "
+    networks:
+      - medwear-network
+
+  influxdb:
+    image: influxdb:2.7
+    container_name: medwear-influxdb
+    restart: unless-stopped
+    env_file:
+      - .env.medwear
+    ports:
+      - "8086:8086"
+    volumes:
+      - influxdb_data:/var/lib/influxdb2
+      - influxdb_config:/etc/influxdb2
+    healthcheck:
+      test: ["CMD", "influx", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - medwear-network
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: medwear-postgres
+    restart: unless-stopped
+    env_file:
+      - .env.medwear
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER"]
+      interval: 10s
+      timeout: 5s
+    networks:
+      - medwear-network
+
+  med-api:
+    build:
+      context: .
+      dockerfile: docker/medwear-api.Dockerfile
+    container_name: medwear-api
+    restart: unless-stopped
+    env_file:
+      - .env.medwear
+    depends_on:
+      - influxdb
+      - postgres
+    environment:
+      - PYTHONPATH=/app
+      - LOG_LEVEL=INFO
+      # Per-user limit on POST /data/batch (slowapi syntax). Raise only for
+      # load/replay experiments, e.g. BATCH_RATE_LIMIT=6000/minute.
+      - BATCH_RATE_LIMIT=${BATCH_RATE_LIMIT:-300/minute}
+    volumes:
+      - ./medwear_med_api:/app/medwear_med_api
+    healthcheck:
+      test: ["CMD", "curl", "-f", "-m", "5", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 15s
+      retries: 2
+      start_period: 30s
+    networks:
+      - medwear-network
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: medwear-pgadmin
+    restart: unless-stopped
+    env_file:
+      - .env.medwear
+    ports:
+      - "5050:80"
+    networks:
+      - medwear-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: medwear-frontend
+    restart: unless-stopped
+    networks:
+      - medwear-network
+    depends_on:
+      - med-api
+
+  medwear-nginx:
+    build:
+      context: ./docker/nginx
+      args:
+        SERVER_HOST: ${SERVER_HOST:-localhost}
+        SERVER_IP: ${SERVER_IP:-127.0.0.1}
+    container_name: medwear-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - med-api
+      - frontend
+    networks:
+      - medwear-network
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: medwear-grafana
+    restart: unless-stopped
+    env_file:
+      - .env.medwear
+    depends_on:
+      - influxdb
+      - postgres
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_PATHS_PROVISIONING=/etc/grafana/provisioning
+      - GF_AUTH_BASIC_ENABLED=true
+      - GF_AUTH_DISABLE_LOGIN_FORM=false
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./docker/grafana/provisioning:/etc/grafana/provisioning
+      - ./docker/grafana/dashboards:/etc/grafana/dashboards
+    networks:
+      - medwear-network
+
+  keycloak-db-setup:
+    image: postgres:15-alpine
+    container_name: medwear-keycloak-db-setup
+    restart: "no"
+    env_file:
+      - .env.medwear
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: >
+      /bin/sh -c "
+      PGPASSWORD=$$POSTGRES_PASSWORD psql -h postgres -U $$POSTGRES_USER
+      -c 'CREATE DATABASE keycloak OWNER $$POSTGRES_USER' 2>/dev/null || true
+      "
+    networks:
+      - medwear-network
+
+  keycloak:
+    image: keycloak/keycloak:23.0
+    container_name: medwear-keycloak
+    restart: unless-stopped
+    volumes:
+      - ./docker/medwear-realm.json:/opt/keycloak/data/import/medwear-realm.json
+    command: start --import-realm
+    environment:
+      - KEYCLOAK_ADMIN=${KEYCLOAK_ADMIN}
+      - KEYCLOAK_ADMIN_PASSWORD=${KEYCLOAK_ADMIN_PASSWORD}
+      # resolves the client secret placeholder in medwear-realm.json on import
+      - KEYCLOAK_CLIENT_SECRET=${KEYCLOAK_CLIENT_SECRET}
+      - KC_DB=postgres
+      - KC_DB_URL=jdbc:postgresql://postgres:5432/keycloak
+      - KC_DB_USERNAME=${POSTGRES_USER}
+      - KC_DB_PASSWORD=${POSTGRES_PASSWORD}
+      - KC_DB_POOL_MAX_SIZE=20
+      - KC_DB_POOL_MIN_SIZE=5
+      - KC_PROXY=edge
+      - KC_HOSTNAME_STRICT=false
+      - KC_HOSTNAME_STRICT_HTTPS=false
+      - KC_HTTP_ENABLED=true
+      - KC_HOSTNAME=medwear-keycloak
+      - KC_HOSTNAME_PORT=8080
+      - JAVA_OPTS_APPEND=-Xms256m -Xmx512m
+    ports:
+      - "8180:8080"
+    depends_on:
+      keycloak-db-setup:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+    networks:
+      - medwear-network
+
+  uptime-kuma:
+    image: louislam/uptime-kuma:1
+    container_name: medwear-uptime-kuma
+    restart: unless-stopped
+    ports:
+      - "3002:3001"
+    volumes:
+      - uptime_kuma_data:/app/data
+    networks:
+      - medwear-network
+
+networks:
+  medwear-network:
+    driver: bridge
+
+volumes:
+  minio_data:
+  influxdb_data:
+  influxdb_config:
+  postgres_data:
+  grafana_data:
+  uptime_kuma_data:

@@ -1,0 +1,18 @@
+api:
+  base_url: "http://localhost:8080/v1"
+
+topics:
+  - topic: "/test/eeg"
+    msg_type: "healthcare_msgs/msg/EEG"
+    signal_type: "EEG"
+    field: "eeg"
+    quality_field: "quality"
+    unit: "uV"
+    sampling_rate_hz: 256
+
+  - topic: "/test/hr"
+    msg_type: "healthcare_msgs/msg/HeartRate"
+    signal_type: "HR"
+    field: "heart_rate"
+    unit: "bpm"
+    sampling_rate_hz: 1
