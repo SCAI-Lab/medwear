@@ -18,7 +18,8 @@ httpx
 
 # Database
 sqlalchemy[asyncio]
-sqlmodel
+# 0.0.48 rejects the naive datetimes the models store; 0.0.38 is the benchmarked version
+sqlmodel==0.0.38
 asyncpg
 greenlet
 alembic

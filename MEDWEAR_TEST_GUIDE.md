@@ -9,7 +9,7 @@
 | MinIO (root) | `minioadmin` | see `.credentials.txt` |
 | MinIO (API user) | `medwear-api` | see `.credentials.txt` |
 | Keycloak admin | `admin` | see `.credentials.txt` |
-| Keycloak users | `global_admin` (password set in the Keycloak admin console) and users added via the API | set when the user is created |
+| Keycloak users | `global_admin` (password set by `setup.sh`) and users added in the Admin tab or via the API | see `.credentials.txt` / set when the user is created |
 
 > InfluxDB org: `medwear` · bucket: `wearables`
 
@@ -20,8 +20,8 @@
 | Container | Purpose |
 |---|---|
 | medwear-api | FastAPI backend (port 8080) |
-| medwear-frontend | Static frontend via nginx (port 80) |
-| medwear-nginx | Reverse proxy |
+| medwear-frontend | Web interface (served through medwear-nginx) |
+| medwear-nginx | HTTPS entry point (ports 80, 443) |
 | medwear-postgres | PostgreSQL — project & processed data |
 | medwear-influxdb | InfluxDB — time-series sensor data |
 | medwear-minio | Object storage — raw files |
@@ -35,7 +35,7 @@
 
 ```bash
 cd <project-root>
-docker compose -f docker-compose.medwear-minimal.yml up -d
+docker compose up -d
 ```
 
 ---
@@ -43,7 +43,7 @@ docker compose -f docker-compose.medwear-minimal.yml up -d
 ## PostgreSQL
 
 **Connection:**
-- Host: `localhost:5432`
+- Host: `localhost:5433` (inside the stack: `medwear-postgres:5432`)
 - User: `medwear`
 - Password: see `.credentials.txt`
 
@@ -51,9 +51,8 @@ docker compose -f docker-compose.medwear-minimal.yml up -d
 
 | Database | Purpose |
 |---|---|
-| `medwear_project1` | Project: project1 |
-| `medwear_project2` | Project: project2 |
-| `medwear_project3` | Project: project3 |
+| `medwear_processed` | API bookkeeping (deleted projects, users) |
+| `medwear_<project>` | one database per project, e.g. `medwear_demo` |
 
 **Tables per project database:**
 - `measurement_batch` — uploaded sensor batches
@@ -65,10 +64,10 @@ docker compose -f docker-compose.medwear-minimal.yml up -d
 
 ```bash
 # Connect via docker
-docker exec -it medwear-postgres psql -U medwear -d medwear_project1
+docker exec -it medwear-postgres psql -U medwear -d medwear_demo
 
 # Check uploaded batches
-docker exec medwear-postgres psql -U medwear -d medwear_project1 \
+docker exec medwear-postgres psql -U medwear -d medwear_demo \
   -c "SELECT COUNT(*) FROM measurement_batch;"
 ```
 
@@ -87,7 +86,7 @@ All projects share the single `wearables` bucket. Data is filtered by `project_i
 ```bash
 # Query recent data for a project
 docker exec medwear-influxdb influx query \
-  'from(bucket:"wearables") |> range(start:-1h) |> filter(fn:(r) => r.project_id == "medwear_project1")'
+  'from(bucket:"wearables") |> range(start:-1h) |> filter(fn:(r) => r.project_id == "medwear_demo")'
 ```
 
 ---
@@ -161,8 +160,8 @@ curl -k -X POST https://localhost/v1/data/batch \
 
 ```bash
 # API logs
-docker compose -f docker-compose.medwear-minimal.yml logs med-api --tail=50
+docker compose logs med-api --tail=50
 
 # All logs
-docker compose -f docker-compose.medwear-minimal.yml logs --tail=20
+docker compose logs --tail=20
 ```

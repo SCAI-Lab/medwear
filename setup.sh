@@ -37,12 +37,12 @@ if [ ! -f ".env.medwear" ]; then
 fi
 # ─────────────────────────────────────────────────────────────────────────────
 
-if ! command -v python3.10 &> /dev/null; then
-    err "Python 3.10 not found!"
-    echo "     Install: brew install python@3.10 (Mac) or apt install python3.10 (Linux)"
+if ! command -v python3 &> /dev/null; then
+    err "Python 3 not found (used to generate the credentials)!"
+    echo "     Install: brew install python3 (Mac) or apt install python3 (Linux)"
     exit 1
 fi
-ok "Python 3.10 found"
+ok "Python 3 found"
 
 if ! command -v docker &> /dev/null; then
     err "Docker not found!"
@@ -87,6 +87,7 @@ if [ -f ".env.medwear" ]; then
   KEYCLOAK_ADMIN="${KEYCLOAK_ADMIN:-admin}"
   GF_ADMIN_USER="${GF_SECURITY_ADMIN_USER:-admin}"
   PGADMIN_PASSWORD="${PGADMIN_DEFAULT_PASSWORD:-$(gen 24)}"
+  GLOBAL_ADMIN_PASSWORD="${GLOBAL_ADMIN_PASSWORD:-}"
 else
   run "Generating secure random credentials..."
   PG_PASSWORD=$(gen 24)
@@ -103,6 +104,7 @@ else
   GF_ADMIN_USER="admin"
   GF_ADMIN_PASSWORD=$(gen 24)
   PGADMIN_PASSWORD=$(gen 24)
+  GLOBAL_ADMIN_PASSWORD=$(gen 20)
   ok "Credentials generated"
 fi
 # ────────────────────────────────────────────────────────────────────────────
@@ -138,10 +140,13 @@ SERVER_HOST=${SERVER_HOST}
 SERVER_IP=${SERVER_IP}
 ENVEOF
 
+# .env is read by docker compose itself (Keycloak settings, nginx build arguments)
 cat > .env << ENVEOF
 KEYCLOAK_ADMIN=${KEYCLOAK_ADMIN}
 KEYCLOAK_ADMIN_PASSWORD=${KEYCLOAK_ADMIN_PASSWORD}
 KEYCLOAK_CLIENT_SECRET=${KEYCLOAK_CLIENT_SECRET}
+SERVER_HOST=${SERVER_HOST:-localhost}
+SERVER_IP=${SERVER_IP:-127.0.0.1}
 ENVEOF
 ok ".env files created"
 
@@ -163,9 +168,9 @@ ok "Credentials saved to .credentials.txt"
 echo ""
 run "Starting Docker services..."
 if command -v docker-compose &> /dev/null; then
-    docker-compose -f docker-compose.medwear-minimal.yml up -d > /dev/null 2>&1
+    docker-compose up -d > /dev/null 2>&1
 else
-    docker compose -f docker-compose.medwear-minimal.yml up -d > /dev/null 2>&1
+    docker compose up -d > /dev/null 2>&1
 fi
 ok "All services started"
 
@@ -208,25 +213,42 @@ mc admin policy attach myminio medwear-api-policy --user ${MINIO_API_KEY}" > /de
 
 ok "MinIO buckets and service account ready"
 
-run "Creating PostgreSQL tables..."
-cd medwear_med_api
-python3 -m venv venv > /dev/null 2>&1 || true
-source venv/bin/activate
-pip install -q asyncpg greenlet sqlalchemy > /dev/null 2>&1
-python3 scripts/create_tables.py > /dev/null 2>&1
-ok "PostgreSQL tables created"
-cd ..
+# Tables: the API runs its schema migrations at startup and creates the
+# database of each project when the project is created.
+
+run "Waiting for Keycloak..."
+KCADM="/opt/keycloak/bin/kcadm.sh"
+for _ in $(seq 1 60); do
+    docker exec medwear-keycloak $KCADM config credentials --server http://localhost:8080 \
+        --realm master --user "${KEYCLOAK_ADMIN}" --password "${KEYCLOAK_ADMIN_PASSWORD}" > /dev/null 2>&1 && break
+    sleep 5
+done
+if [ -n "${GLOBAL_ADMIN_PASSWORD}" ]; then
+    if docker exec medwear-keycloak $KCADM set-password -r medwear --username global_admin \
+            --new-password "${GLOBAL_ADMIN_PASSWORD}" > /dev/null 2>&1; then
+        uid=$(docker exec medwear-keycloak $KCADM get users -r medwear -q username=global_admin \
+            --fields id --format csv --noquotes 2>/dev/null | head -1)
+        [ -n "$uid" ] && docker exec medwear-keycloak $KCADM update "users/$uid" -r medwear \
+            -s 'requiredActions=[]' > /dev/null 2>&1 || true
+        echo "global_admin   : global_admin / ${GLOBAL_ADMIN_PASSWORD}" >> .credentials.txt
+        ok "Keycloak user global_admin ready (password in .credentials.txt)"
+    else
+        err "Could not set the global_admin password; set it in the Keycloak console (Users -> global_admin -> Credentials)"
+    fi
+else
+    ok "Keycloak running (existing installation: global_admin password unchanged)"
+fi
 
 run "Setting up Grafana..."
 sleep 10
 
-curl -s -X POST http://localhost:3001/api/datasources \
+curl -s -m 10 -X POST http://localhost:3001/api/datasources \
     -H "Content-Type: application/json" \
     -u "${GF_ADMIN_USER}:${GF_ADMIN_PASSWORD}" \
     -d "{\"name\":\"InfluxDB\",\"type\":\"influxdb\",\"access\":\"proxy\",\"url\":\"http://medwear-influxdb:8086\",\"isDefault\":true,\"jsonData\":{\"version\":\"Flux\",\"organization\":\"medwear\",\"defaultBucket\":\"wearables\"},\"secureJsonData\":{\"token\":\"${INFLUX_TOKEN}\"}}" \
     > /dev/null 2>&1 || true
 
-curl -s -X POST http://localhost:3001/api/datasources \
+curl -s -m 10 -X POST http://localhost:3001/api/datasources \
     -H "Content-Type: application/json" \
     -u "${GF_ADMIN_USER}:${GF_ADMIN_PASSWORD}" \
     -d "{\"name\":\"PostgreSQL\",\"type\":\"grafana-postgresql-datasource\",\"access\":\"proxy\",\"url\":\"medwear-postgres:5432\",\"database\":\"medwear_processed\",\"user\":\"medwear\",\"jsonData\":{\"sslmode\":\"disable\"},\"secureJsonData\":{\"password\":\"${PG_PASSWORD}\"}}" \
@@ -241,7 +263,7 @@ d.pop('id', None)
 d.pop('uid', None)
 payload = {'dashboard': d, 'folderUid': '', 'overwrite': True}
 print(json.dumps(payload))
-" | curl -s -X POST http://localhost:3001/api/dashboards/db \
+" | curl -s -m 10 -X POST http://localhost:3001/api/dashboards/db \
         -H "Content-Type: application/json" \
         -u "${GF_ADMIN_USER}:${GF_ADMIN_PASSWORD}" \
         -d @- > /dev/null 2>&1 || true
@@ -252,8 +274,8 @@ echo ""
 box "Setup Complete!"
 
 echo -e "  ${GREEN}${BOLD}Services:${NC}"
-echo -e "  Frontend ${YELLOW}→${NC} https://localhost"
-echo -e "  API Docs ${YELLOW}→${NC} https://localhost/docs"
+echo -e "  Frontend ${YELLOW}→${NC} https://${SERVER_HOST:-localhost}"
+echo -e "  API Docs ${YELLOW}→${NC} https://${SERVER_HOST:-localhost}/docs"
 echo -e "  Keycloak ${YELLOW}→${NC} http://localhost:8180  ${BLUE}(${KEYCLOAK_ADMIN} / ${KEYCLOAK_ADMIN_PASSWORD})${NC}"
 echo -e "  InfluxDB ${YELLOW}→${NC} http://localhost:8086  ${BLUE}(admin / ${INFLUX_PASSWORD})${NC}"
 echo -e "  Grafana  ${YELLOW}→${NC} http://localhost:3001  ${BLUE}(${GF_ADMIN_USER} / ${GF_ADMIN_PASSWORD})${NC}"
@@ -262,6 +284,6 @@ echo -e "  pgAdmin  ${YELLOW}→${NC} http://localhost:5050  ${BLUE}(admin@medwe
 echo ""
 echo -e "  ${YELLOW}All credentials saved to${NC} .credentials.txt"
 echo ""
-echo -e "  ${GREEN}${BOLD}Tests:${NC}"
-echo -e "  cd medwear_med_api && pytest tests/test_unit.py tests/test_property.py"
+echo -e "  ${GREEN}${BOLD}Next:${NC} log in at https://${SERVER_HOST:-localhost} as global_admin,"
+echo -e "  create a project and add users (see README.md, \"First steps\")."
 echo ""

@@ -166,9 +166,15 @@ class TestMigrationSchema:
     @pytest.mark.asyncio
     async def test_alembic_version_recorded(self, conn):
         """Alembic version table must record the latest revision."""
+        import pathlib
+        from alembic.config import Config
+        from alembic.script import ScriptDirectory
+
+        ini_path = pathlib.Path(__file__).parent.parent / "alembic.ini"
+        head = ScriptDirectory.from_config(Config(str(ini_path))).get_current_head()
         rows = await conn.fetch("SELECT version_num FROM alembic_version")
         assert len(rows) == 1
-        assert rows[0]["version_num"] == "83241c70658c"
+        assert rows[0]["version_num"] == head
 
     @pytest.mark.asyncio
     async def test_roundtrip_insert_measurement_batch(self, conn):

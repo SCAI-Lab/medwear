@@ -12,9 +12,6 @@ RUN apt-get update && apt-get install -y \
 COPY medwear_med_api/ /app/medwear_med_api/
 RUN cd /app/medwear_med_api && pip install -r requirements.txt && pip install -e .
 
-# Copy iActivity assessment only
-RUN mkdir -p /app/medwear_assessments/iactivity
-
 # Install additional dependencies for med API
 RUN pip install fastapi uvicorn python-jose httpx slowapi minio pyotp "qrcode[pil]" python-json-logger \
     pandas numpy scipy python-dateutil tqdm \

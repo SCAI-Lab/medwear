@@ -8,6 +8,8 @@ CLAUDE.md
 .env.medwear
 .env.staging
 .env.production
+# Deployment override (linked from the deployment's own repo, see deployments/README.md)
+docker-compose.override.yml
 # Allow only .example templates — never commit real secrets
 !*.example
 

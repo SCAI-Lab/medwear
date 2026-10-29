@@ -1,10 +1,10 @@
-# Ignore files and directories not needed for minimal iActivity system
+# Files not needed in the API image (build context: repository root)
 
 # Version control
 .git
 .gitignore
 
-# Python cache
+# Python cache and virtual environments
 __pycache__
 *.pyc
 *.pyo
@@ -15,36 +15,26 @@ __pycache__
 env/
 venv/
 
-# IDE files
+# Editors and OS files
 .vscode
 .idea
 *.swp
 *.swo
 *~
-
-# OS files
 .DS_Store
 Thumbs.db
 
-# Tests and docs
+# Tests, documentation and local data
 tests/
 *.md
 LICENSE
-
-# Data files (use volumes instead)
+docs/
 data/
 docker/grafana/
-docker/samples/
-
-# Complex compose files
-dmz-docker-compose.yaml
-medwear-docker-compose.yaml
-
-# Documentation
-MEDWEAR_README.md
-LICENSE
-Makefile
-
-# Test outputs
-data/processed/
 *.log
+
+# Local configuration and credentials
+.env
+.env.*
+.credentials.txt
+docker-compose.override.yml
