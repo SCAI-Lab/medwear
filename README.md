@@ -136,8 +136,12 @@ contains password hashes and the client secret.
 
 ## Streaming from ROS 2
 
-[`ros2_to_medwear/`](ros2_to_medwear/) forwards `healthcare_msgs` topics (EEG,
-EDA, heart rate, HRV) from a recording computer to the API; see its
+[`ros2_to_medwear/`](ros2_to_medwear/) forwards ROS 2 topics from a recording
+computer to the API: every `healthcare_msgs` type that carries samples (ECG,
+EEG, EMG, EOG, ICG, BCG, PPG, EDA, heart rate, HRV, RR interval, respiratory
+rate, stress, blood volume pulse, cardiac output, stroke volume) and IMU data,
+with the device metadata of their `…Info` messages. Multi-channel messages
+become one stream per channel; high-rate topics are batched. See its
 [README](ros2_to_medwear/README.md).
 
 ## Tests

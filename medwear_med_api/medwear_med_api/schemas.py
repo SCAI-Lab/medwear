@@ -65,6 +65,17 @@ class SignalType(str, Enum):
     EDA = "EDA"
     HR = "HR"
     HRV = "HRV"
+    # Further healthcare_msgs types (raw and derived biosignals). They use
+    # the generic body (signal_data + unit).
+    EMG = "EMG"
+    EOG = "EOG"
+    ICG = "ICG"
+    BVP = "BVP"
+    RR_INTERVAL = "RR_INTERVAL"
+    RESPIRATORY_RATE = "RESPIRATORY_RATE"
+    STRESS = "STRESS"
+    CARDIAC_OUTPUT = "CARDIAC_OUTPUT"
+    STROKE_VOLUME = "STROKE_VOLUME"
 
 
 class ECGUnit(str, Enum):
@@ -128,6 +139,24 @@ class EDAInfo(BaseModel):
     measuring_technique: Optional[str] = None
 
 
+class EMGInfo(BaseModel):
+    electrode_placement: Optional[List[str]] = None
+    electrode_type: Optional[List[str]] = None
+    signal_mode: Optional[str] = None
+
+
+class EOGInfo(BaseModel):
+    electrode_placement: Optional[List[str]] = None
+    lead_type: Optional[List[str]] = None
+    signal_mode: Optional[str] = None
+
+
+class ICGInfo(BaseModel):
+    electrode_placement: Optional[List[str]] = None
+    lead_type: Optional[List[str]] = None
+    technique: Optional[str] = None
+
+
 class BatchHeader(BaseModel):
     uuid: str = Field(...)
     schema_id: str = Field(...)
@@ -140,6 +169,9 @@ class BatchHeader(BaseModel):
     ppg_info: Optional[PPGInfo] = None
     eeg_info: Optional[EEGInfo] = None
     eda_info: Optional[EDAInfo] = None
+    emg_info: Optional[EMGInfo] = None
+    eog_info: Optional[EOGInfo] = None
+    icg_info: Optional[ICGInfo] = None
 
     @field_validator("uuid")
     @classmethod
@@ -346,6 +378,9 @@ class BatchUploadRequest(BaseModel):
             SignalType.PPG: self.header.ppg_info,
             SignalType.EEG: self.header.eeg_info,
             SignalType.EDA: self.header.eda_info,
+            SignalType.EMG: self.header.emg_info,
+            SignalType.EOG: self.header.eog_info,
+            SignalType.ICG: self.header.icg_info,
         }
         info = info_map.get(self.signal_type)
         return info.model_dump(exclude_none=True) if info else {}
@@ -391,6 +426,9 @@ class SessionHeader(BaseModel):
     ppg_info: Optional[PPGInfo] = None
     eeg_info: Optional[EEGInfo] = None
     eda_info: Optional[EDAInfo] = None
+    emg_info: Optional[EMGInfo] = None
+    eog_info: Optional[EOGInfo] = None
+    icg_info: Optional[ICGInfo] = None
 
 
 class SessionCreateRequest(BaseModel):

@@ -6,7 +6,9 @@ import signal
 import sys
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
-RECEIVED_FILE = "/tmp/received_batches.json"
+OUT_DIR = os.environ.get("MOCK_OUT_DIR", "/tmp")
+RECEIVED_FILE = os.path.join(OUT_DIR, "received_batches.json")
+SESSIONS_FILE = os.path.join(OUT_DIR, "received_sessions.json")
 received = []
 sessions = {}   # session_id -> registration
 
@@ -28,6 +30,8 @@ class Handler(BaseHTTPRequestHandler):
         elif self.path == "/v1/data/session":
             reg = json.loads(body)
             sessions[reg["session_id"]] = reg
+            with open(SESSIONS_FILE, "w") as f:
+                json.dump(sessions, f, indent=2)
             print(f"[MOCK API] POST /session — {reg['signal_type']} {reg['header']['schema_id']}", flush=True)
             self.send_response(200)
             self.send_header("Content-Type", "application/json")
@@ -69,8 +73,10 @@ class Handler(BaseHTTPRequestHandler):
 
 
 if __name__ == "__main__":
-    if os.path.exists(RECEIVED_FILE):
-        os.remove(RECEIVED_FILE)
-    server = HTTPServer(("0.0.0.0", 8080), Handler)
-    print("[MOCK API] Listening on :8080", flush=True)
+    for path in (RECEIVED_FILE, SESSIONS_FILE):
+        if os.path.exists(path):
+            os.remove(path)
+    port = int(os.environ.get("MOCK_PORT", "8080"))
+    server = HTTPServer(("0.0.0.0", port), Handler)
+    print(f"[MOCK API] Listening on :{port}", flush=True)
     server.serve_forever()

@@ -1,0 +1,24 @@
+# Bridge config for run_all_types_test.sh: every supported healthcare_msgs
+# type with only topic + msg_type, so signal type, fields, units, sampling
+# rate and channel layout all come from the registry and the Info messages.
+api:
+  base_url: "http://localhost:8080/v1"
+
+topics:
+  - {topic: /test/ecg, msg_type: healthcare_msgs/msg/ECG, batch_window_s: 1}
+  - {topic: /test/eeg, msg_type: healthcare_msgs/msg/EEG, batch_window_s: 1}
+  - {topic: /test/emg, msg_type: healthcare_msgs/msg/EMG, batch_window_s: 1}
+  - {topic: /test/eog, msg_type: healthcare_msgs/msg/EOG, batch_window_s: 1}
+  - {topic: /test/icg, msg_type: healthcare_msgs/msg/ICG, batch_window_s: 1}
+  - {topic: /test/bcg, msg_type: healthcare_msgs/msg/BCG, batch_window_s: 1}
+  - {topic: /test/ppg, msg_type: healthcare_msgs/msg/PPG, batch_window_s: 1}
+  - {topic: /test/eda, msg_type: healthcare_msgs/msg/EDA, batch_window_s: 1}
+  # derived signals: one reading per message, sampling rate given here
+  - {topic: /test/hr,     msg_type: healthcare_msgs/msg/HeartRate, sampling_rate_hz: 1}
+  - {topic: /test/hrv,    msg_type: healthcare_msgs/msg/HeartRateVariability, sampling_rate_hz: 1}
+  - {topic: /test/rri,    msg_type: healthcare_msgs/msg/RRInterval, sampling_rate_hz: 1}
+  - {topic: /test/resp,   msg_type: healthcare_msgs/msg/RespiratoryRate, sampling_rate_hz: 1}
+  - {topic: /test/stress, msg_type: healthcare_msgs/msg/Stress, sampling_rate_hz: 1}
+  - {topic: /test/bvp,    msg_type: healthcare_msgs/msg/BloodVolumePulse, sampling_rate_hz: 1}
+  - {topic: /test/co,     msg_type: healthcare_msgs/msg/CardiacOutput, sampling_rate_hz: 1}
+  - {topic: /test/sv,     msg_type: healthcare_msgs/msg/StrokeVolume, sampling_rate_hz: 1}

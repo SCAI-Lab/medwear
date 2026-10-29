@@ -83,8 +83,18 @@ the roles `collaborator`, `researcher` and `device`.
 
 ### Structured batches: `POST /v1/data/batch`
 
-Metadata goes to PostgreSQL, samples to InfluxDB. Signal types: `ECG`, `BCG`,
-`PPG`, `IMU`, `EEG`, `EDA`, `HR`, `HRV`. Role `researcher` or `device`.
+Metadata goes to PostgreSQL, samples to InfluxDB. Role `researcher` or
+`device`.
+
+| Signal type | Samples field in `body` | Header block (optional) |
+|---|---|---|
+| `ECG` | `ecg_lead_data`, with `signal_quality` per sample | `ecg_info` |
+| `BCG` | `bcg_sensor_readings` | `bcg_info` |
+| `PPG`, `EEG`, `EDA`, `EMG`, `EOG`, `ICG` | `signal_data` | `ppg_info`, `eeg_info`, `eda_info`, `emg_info`, `eog_info`, `icg_info` |
+| `IMU`, `HR`, `HRV`, `RR_INTERVAL`, `RESPIRATORY_RATE`, `STRESS`, `BVP`, `CARDIAC_OUTPUT`, `STROKE_VOLUME` | `signal_data` | – |
+
+These cover every `healthcare_msgs` type that carries samples, so the ROS 2
+bridge can forward all of them (see `ros2_to_medwear/README.md`).
 
 ```bash
 curl -sk -X POST https://<host>/v1/data/batch \
@@ -111,8 +121,6 @@ curl -sk -X POST https://<host>/v1/data/batch \
 ```
 
 - `header.uuid` is a UUID v4 (`python3 -c "import uuid; print(uuid.uuid4())"`).
-- ECG batches carry `ecg_lead_data` and a `signal_quality` value per sample
-  instead of `signal_data`.
 - Several batches can be sent at once as `{"batches": [ ... ]}`.
 - `idempotency_key` (optional) identifies a batch across retries.
 

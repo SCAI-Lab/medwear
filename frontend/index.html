@@ -344,7 +344,7 @@
           <div class="grid-2">
             <div class="card">
               <div class="card-title">Batch Information</div>
-              <div class="form-group"><label class="form-label">Signal Type</label><select class="form-input" id="up-signal"><option>ECG</option><option>BCG</option><option>PPG</option><option>IMU</option><option>EEG</option><option>EDA</option></select></div>
+              <div class="form-group"><label class="form-label">Signal Type</label><select class="form-input" id="up-signal"><option>ECG</option><option>BCG</option><option>PPG</option><option>IMU</option><option>EEG</option><option>EDA</option><option>HR</option><option>HRV</option><option>EMG</option><option>EOG</option><option>ICG</option><option>BVP</option><option>RR_INTERVAL</option><option>RESPIRATORY_RATE</option><option>STRESS</option><option>CARDIAC_OUTPUT</option><option>STROKE_VOLUME</option></select></div>
               <div class="form-group"><label class="form-label">Patient ID</label><input type="text" class="form-input" id="up-patient" placeholder="123456"></div>
               <div class="form-group"><label class="form-label">Device ID</label><input type="text" class="form-input" id="up-device" placeholder="polar-h10-01"></div>
               <div class="form-group"><label class="form-label">Idempotency Key</label><input type="text" class="form-input" id="up-ikey" placeholder="auto-generated if empty"></div>
@@ -408,7 +408,7 @@
           <div class="card-title">Filters</div>
           <div class="filters">
             <div class="form-group" style="margin-bottom:0;"><label class="form-label">Patient IDs</label><input type="text" class="form-input" id="q-patients" placeholder="123456, 789012"></div>
-            <div class="form-group" style="margin-bottom:0;"><label class="form-label">Signal Type</label><select class="form-input" id="q-signal"><option value="">All</option><option>ECG</option><option>BCG</option><option>PPG</option><option>IMU</option><option>EEG</option><option>EDA</option></select></div>
+            <div class="form-group" style="margin-bottom:0;"><label class="form-label">Signal Type</label><select class="form-input" id="q-signal"><option value="">All</option><option>ECG</option><option>BCG</option><option>PPG</option><option>IMU</option><option>EEG</option><option>EDA</option><option>HR</option><option>HRV</option><option>EMG</option><option>EOG</option><option>ICG</option><option>BVP</option><option>RR_INTERVAL</option><option>RESPIRATORY_RATE</option><option>STRESS</option><option>CARDIAC_OUTPUT</option><option>STROKE_VOLUME</option></select></div>
             <div class="form-group" style="margin-bottom:0;"><label class="form-label">Device ID</label><input type="text" class="form-input" id="q-device" placeholder="polar-h10-01"></div>
             <div class="form-group" id="q-project-group" style="margin-bottom:0;display:none;"><label class="form-label">Project ID</label><input type="text" class="form-input" id="q-project" placeholder="medwear_project1"></div>
           </div>
@@ -677,7 +677,7 @@
 const API=window.location.origin,KC_CLIENT='med-api';
 let token=null,refreshToken=null,tokenExpiry=null,tokenInterval=null,refreshInterval=null,currentUser=null;
 let signalChart=null,waveformChart=null,visChart1=null,visChart2=null,visChartOverlay=null,liveECGChart=null,liveECGInterval=null;
-const COLORS={ECG:'#00d4ff',BCG:'#00ff88',PPG:'#ff6b35',EEG:'#a78bfa',EDA:'#ffa502',IMU:'#ff4757'};
+const COLORS={ECG:'#00d4ff',BCG:'#00ff88',PPG:'#ff6b35',EEG:'#a78bfa',EDA:'#ffa502',IMU:'#ff4757',HR:'#ff6b81',HRV:'#ff9f43',EMG:'#2ed573',EOG:'#70a1ff',ICG:'#eccc68',BVP:'#ff7f50',RR_INTERVAL:'#7bed9f',RESPIRATORY_RATE:'#5352ed',STRESS:'#e84393',CARDIAC_OUTPUT:'#1e90ff',STROKE_VOLUME:'#00cec9'};
 
 function toast(msg,type='info',dur=3500){
   const icons={success:'✓',error:'✗',info:'ℹ',warning:'⚠'};

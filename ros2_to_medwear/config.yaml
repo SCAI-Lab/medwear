@@ -17,6 +17,10 @@ api:
   base_url: "http://medwear-nginx/v1"   # inside Docker network
   # Override with API_BASE_URL env var for local testing: http://localhost/v1
 
+# Defaults per message type (signal_type, field, quality_field, unit, channel
+# layout, Info topic) come from medwear_bridge/message_types.py, so an entry
+# only needs topic + msg_type; keys given below override them. Units and
+# sampling rates set here also win over the device's ...Info message.
 topics:
   # ── EEG / EDA ────────────────────────────────────────────
   # No EEG or EDA data source exists anywhere in this project as of

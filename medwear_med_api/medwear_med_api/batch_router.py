@@ -205,6 +205,15 @@ SIGNAL_FIELD_MAP = {
     "EDA": "signal_data",
     "HR": "signal_data",
     "HRV": "signal_data",
+    "EMG": "signal_data",
+    "EOG": "signal_data",
+    "ICG": "signal_data",
+    "BVP": "signal_data",
+    "RR_INTERVAL": "signal_data",
+    "RESPIRATORY_RATE": "signal_data",
+    "STRESS": "signal_data",
+    "CARDIAC_OUTPUT": "signal_data",
+    "STROKE_VOLUME": "signal_data",
 }
 
 

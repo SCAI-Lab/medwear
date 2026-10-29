@@ -22,6 +22,7 @@ RUN mkdir -p /ros2_ws/src && \
 
 COPY config.yaml .
 COPY medwear_subscriber.py .
+COPY medwear_bridge/ medwear_bridge/
 
 # Source ROS 2 + workspace on every exec
 SHELL ["/bin/bash", "-c"]

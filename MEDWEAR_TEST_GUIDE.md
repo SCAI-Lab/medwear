@@ -152,7 +152,7 @@ curl -k -X POST https://localhost/v1/data/batch \
 
 **Note:** Sample count coherence check is skipped for uploads with fewer than 50 samples (useful for quick tests).
 
-**Supported signal types:** `ECG`, `BCG`, `PPG`, `IMU`, `EEG`, `EDA`, `HR`, `HRV`
+**Supported signal types:** `ECG`, `BCG`, `PPG`, `IMU`, `EEG`, `EDA`, `EMG`, `EOG`, `ICG`, `HR`, `HRV`, `RR_INTERVAL`, `RESPIRATORY_RATE`, `STRESS`, `BVP`, `CARDIAC_OUTPUT`, `STROKE_VOLUME` (see [docs/API.md](docs/API.md))
 
 ---
 

@@ -1,9 +1,11 @@
 FROM medwear-ros2-to-medwear:latest
 
-COPY test/mock_api.py    /test/mock_api.py
-COPY test/test_config.yaml /test/test_config.yaml
-COPY test/run_test.sh    /test/run_test.sh
+COPY test/mock_api.py test/test_config.yaml test/run_test.sh /test/
+COPY test/all_types_config.yaml test/publish_all_types.py test/check_all_types.py test/run_all_types_test.sh /test/
+RUN chmod +x /test/run_test.sh /test/run_all_types_test.sh
 
-RUN chmod +x /test/run_test.sh
-
-CMD ["/bin/bash", "/test/run_test.sh"]
+ENV BRIDGE_DIR=/bridge
+# run the given test script with ROS 2 and healthcare_msgs sourced
+ENTRYPOINT ["/bin/bash", "-c", \
+    "source /opt/ros/jazzy/setup.bash && source /ros2_ws/install/setup.bash && exec \"$@\"", "--"]
+CMD ["/test/run_test.sh"]

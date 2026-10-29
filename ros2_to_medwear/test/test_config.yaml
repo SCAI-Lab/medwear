@@ -6,7 +6,7 @@ topics:
     msg_type: "healthcare_msgs/msg/EEG"
     signal_type: "EEG"
     field: "eeg"
-    quality_field: "quality"
+    quality_field: "signal_quality"
     unit: "uV"
     sampling_rate_hz: 256
 
